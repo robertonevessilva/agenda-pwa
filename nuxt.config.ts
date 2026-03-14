@@ -169,8 +169,10 @@ export default defineNuxtConfig({
   // Configurações de build otimizadas
   nitro: {
     prerender: {
-      crawlLinks: true,
-      routes: ['/']
-    }
+      crawlLinks: false,
+      routes: []
+    },
+    // Configuração para evitar erros no Vercel
+    preset: 'vercel'
   }
 })
