@@ -62,6 +62,7 @@ export const useAgendaStore = defineStore('agenda', {
       this.error = null
 
       try {
+        console.log('🔄 Carregando todos os dados da agenda...')
         const db = useLocalStorageDB()
         const [reminders, appointments, auditLogs] = await Promise.all([
           db.getReminders(),
@@ -69,11 +70,14 @@ export const useAgendaStore = defineStore('agenda', {
           db.getAuditLogs(50)
         ])
 
+        console.log(`📊 Dados carregados: ${reminders.length} lembretes, ${appointments.length} compromissos, ${auditLogs.length} logs`)
+        console.log('📋 Audit logs:', auditLogs)
+
         this.reminders = reminders
         this.appointments = appointments
         this.auditLogs = auditLogs
       } catch (error) {
-        console.error('Failed to load data:', error)
+        console.error('❌ Failed to load data:', error)
         this.error = error instanceof Error ? error.message : 'Unknown error'
       } finally {
         this.isLoading = false

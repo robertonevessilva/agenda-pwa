@@ -29,9 +29,28 @@
           + Compromisso
         </button>
       </div>
-      <button class="btn btn-full" @click="navigateTo('/history')">
+      <button class="btn btn-full" @click="navigateToHistory()">
         📋 Histórico
       </button>
+      
+      <!-- Botão de debug (apenas em desenvolvimento) -->
+      <button v-if="isDevelopment" class="btn btn-debug" @click="runDebugTests()">
+        🐛 Debug Navegação
+      </button>
+    </div>
+
+    <!-- Notificação Toast -->
+    <div v-if="showNotification" class="notification-toast" :class="`notification-${notificationType}`">
+      <div class="notification-content">
+        <span class="notification-icon">
+          <span v-if="notificationType === 'info'">ℹ️</span>
+          <span v-if="notificationType === 'success'">✅</span>
+          <span v-if="notificationType === 'warning'">⚠️</span>
+          <span v-if="notificationType === 'error'">❌</span>
+        </span>
+        <span class="notification-message">{{ notificationMessage }}</span>
+      </div>
+      <button class="notification-close" @click="showNotification = false">×</button>
     </div>
 
     <!-- Filtros -->
@@ -363,8 +382,10 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from '#imports'
 import { useAgendaStore } from '~/stores/agenda'
 
+const router = useRouter()
 const agendaStore = useAgendaStore()
 
 // Estados do formulário
@@ -379,6 +400,11 @@ const showConfirmModal = ref(false)
 const viewModalData = ref({})
 const confirmMessage = ref('')
 const itemToDelete = ref({ id: null, type: null })
+
+// Sistema de notificações
+const showNotification = ref(false)
+const notificationMessage = ref('')
+const notificationType = ref('info') // 'info', 'success', 'warning', 'error'
 
 // Filtro de visualização
 const viewFilter = ref('all')
@@ -420,6 +446,9 @@ const filteredAppointments = computed(() => {
   return []
 })
 
+// Verificar se está em desenvolvimento
+const isDevelopment = ref(process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost')
+
 // Inicialização
 onMounted(async () => {
   await agendaStore.initialize()
@@ -439,6 +468,18 @@ function formatDateTime(dateTime) {
 
 function isPastDate(dateTime) {
   return new Date(dateTime) < new Date()
+}
+
+// Funções de notificação
+function showNotificationMessage(message, type = 'info') {
+  notificationMessage.value = message
+  notificationType.value = type
+  showNotification.value = true
+  
+  // Auto-hide após 3 segundos
+  setTimeout(() => {
+    showNotification.value = false
+  }, 3000)
 }
 
 // Funções de Lembretes
@@ -461,6 +502,12 @@ function openReminderForm(reminder = null) {
     }
   }
   showReminderForm.value = true
+  
+  // Se já estiver no formulário de compromissos, mostrar mensagem
+  if (showAppointmentForm.value) {
+    showNotificationMessage('Você está alternando para o formulário de Lembretes. O formulário de Compromissos foi fechado.', 'info')
+    cancelAppointmentForm()
+  }
 }
 
 function cancelReminderForm() {
@@ -561,6 +608,12 @@ function openAppointmentForm(appointment = null) {
     }
   }
   showAppointmentForm.value = true
+  
+  // Se já estiver no formulário de lembretes, mostrar mensagem
+  if (showReminderForm.value) {
+    showNotificationMessage('Você está alternando para o formulário de Compromissos. O formulário de Lembretes foi fechado.', 'info')
+    cancelReminderForm()
+  }
 }
 
 function cancelAppointmentForm() {
@@ -670,8 +723,73 @@ async function confirmDelete() {
   }
 }
 
+function navigateToHistory() {
+  console.log('📋 Navegando para histórico...')
+  console.log('auditLogs length:', agendaStore.auditLogs.length)
+  
+  if (agendaStore.auditLogs.length === 0) {
+    showNotificationMessage('O histórico está vazio. Não há registros para exibir.', 'info')
+    console.log('Histórico vazio - mostrando notificação')
+  } else {
+    console.log('Histórico tem registros - navegando...')
+    
+    // Tentativa 1: Usar router do Nuxt
+    try {
+      console.log('Tentando router.push...')
+      router.push('/history')
+      console.log('router.push chamado com sucesso')
+    } catch (routerError) {
+      console.error('❌ Erro no router:', routerError)
+      
+      // Tentativa 2: Fallback para window.location
+      try {
+        console.log('Tentando window.location.href...')
+        window.location.href = '/history'
+        console.log('window.location.href chamado')
+      } catch (locationError) {
+        console.error('❌ Erro no window.location:', locationError)
+        
+        // Tentativa 3: Fallback para window.open
+        try {
+          console.log('Tentando window.open...')
+          window.open('/history', '_self')
+          console.log('window.open chamado')
+        } catch (openError) {
+          console.error('❌ Erro no window.open:', openError)
+          showNotificationMessage('Erro ao navegar para o histórico. Tente recarregar a página.', 'error')
+        }
+      }
+    }
+  }
+}
+
 function navigateTo(path) {
-  window.location.href = path
+  console.log(`Navegando para: ${path}`)
+  try {
+    router.push(path)
+  } catch (error) {
+    console.error('Erro na navegação:', error)
+    window.location.href = path
+  }
+}
+
+// Funções de debug
+async function runDebugTests() {
+  console.log('🧪 INICIANDO TESTES DE DEBUG')
+  
+  try {
+    // Carregar módulo de debug
+    const { NavigationDebug } = await import('~/utils/debug-navigation.js')
+    
+    // Executar testes
+    await NavigationDebug.testNavigation()
+    
+    // Mostrar notificação
+    showNotificationMessage('Testes de debug executados. Verifique o console.', 'success')
+  } catch (error) {
+    console.error('❌ Erro ao executar testes de debug:', error)
+    showNotificationMessage('Erro ao executar testes de debug. Verifique o console.', 'error')
+  }
 }
 </script>
 
@@ -781,6 +899,14 @@ h1 {
 
 .btn-view:hover {
   background: #388e3c;
+}
+
+.btn-debug {
+  background: #9c27b0;
+}
+
+.btn-debug:hover {
+  background: #7b1fa2;
 }
 
 .filters {
@@ -1138,6 +1264,105 @@ h1 {
   
   .modal-footer .btn {
     width: 100%;
+  }
+}
+
+/* Estilos da Notificação Toast */
+.notification-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 2000;
+  max-width: 400px;
+  min-width: 300px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  animation: slideIn 0.3s ease-out;
+  border-left: 4px solid #1976d2;
+}
+
+.notification-info {
+  border-left-color: #1976d2;
+  background: #e3f2fd;
+}
+
+.notification-success {
+  border-left-color: #4caf50;
+  background: #e8f5e9;
+}
+
+.notification-warning {
+  border-left-color: #ff9800;
+  background: #fff3e0;
+}
+
+.notification-error {
+  border-left-color: #f44336;
+  background: #ffebee;
+}
+
+.notification-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.notification-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.notification-message {
+  font-size: 14px;
+  line-height: 1.4;
+  color: #333;
+}
+
+.notification-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.notification-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 600px) {
+  .notification-toast {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+    min-width: auto;
   }
 }
 </style>
