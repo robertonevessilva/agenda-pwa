@@ -166,13 +166,13 @@ export default defineNuxtConfig({
     payloadExtraction: false
   },
   
-  // Configurações de build otimizadas
+  // Configurações de build otimizadas para Vercel
   nitro: {
     prerender: {
       crawlLinks: false,
       routes: []
     },
-    // Configuração para evitar erros no Vercel
+    // Configuração específica para Vercel
     preset: 'vercel'
   }
 })
