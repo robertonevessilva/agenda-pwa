@@ -13,6 +13,10 @@
           <span class="stat-number">{{ filteredAppointments.length }}</span>
           <span class="stat-label">Compromissos</span>
         </div>
+        <div class="stat">
+          <span class="stat-number">{{ agendaStore.auditLogs.length }}</span>
+          <span class="stat-label">Histórico</span>
+        </div>
       </div>
     </header>
 
@@ -23,6 +27,9 @@
         </button>
         <button class="btn" @click="openAppointmentForm()">
           + Compromisso
+        </button>
+        <button class="btn" @click="navigateToHistory()">
+          📋 Histórico
         </button>
       </div>
       
@@ -713,6 +720,27 @@ async function confirmDelete() {
     console.error('Error deleting item:', error)
   } finally {
     closeConfirmModal()
+  }
+}
+
+// Função para navegar para a página de histórico
+function navigateToHistory() {
+  console.log('📋 Navegando para a página de histórico...')
+  
+  try {
+    // Usar o router do Nuxt para navegar
+    router.push('/history')
+    
+    // Mostrar notificação de sucesso
+    showNotificationMessage('Redirecionando para a página de histórico...', 'info')
+  } catch (error) {
+    console.error('❌ Erro ao navegar para histórico:', error)
+    showNotificationMessage('Erro ao acessar histórico. Tente novamente.', 'error')
+    
+    // Fallback: tentar navegação direta
+    setTimeout(() => {
+      window.location.href = '/history'
+    }, 1000)
   }
 }
 
