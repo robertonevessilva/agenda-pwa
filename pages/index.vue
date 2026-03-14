@@ -13,10 +13,6 @@
           <span class="stat-number">{{ filteredAppointments.length }}</span>
           <span class="stat-label">Compromissos</span>
         </div>
-        <div class="stat">
-          <span class="stat-number">{{ agendaStore.auditLogs.length }}</span>
-          <span class="stat-label">Histórico</span>
-        </div>
       </div>
     </header>
 
@@ -29,9 +25,6 @@
           + Compromisso
         </button>
       </div>
-      <button class="btn btn-full" @click="navigateToHistory()">
-        📋 Histórico
-      </button>
       
       <!-- Botão de debug (apenas em desenvolvimento) -->
       <button v-if="isDevelopment" class="btn btn-debug" @click="runDebugTests()">
@@ -720,56 +713,6 @@ async function confirmDelete() {
     console.error('Error deleting item:', error)
   } finally {
     closeConfirmModal()
-  }
-}
-
-function navigateToHistory() {
-  console.log('📋 Navegando para histórico...')
-  console.log('auditLogs length:', agendaStore.auditLogs.length)
-  
-  if (agendaStore.auditLogs.length === 0) {
-    showNotificationMessage('O histórico está vazio. Não há registros para exibir.', 'info')
-    console.log('Histórico vazio - mostrando notificação')
-  } else {
-    console.log('Histórico tem registros - navegando...')
-    
-    // Tentativa 1: Usar router do Nuxt
-    try {
-      console.log('Tentando router.push...')
-      router.push('/history')
-      console.log('router.push chamado com sucesso')
-    } catch (routerError) {
-      console.error('❌ Erro no router:', routerError)
-      
-      // Tentativa 2: Fallback para window.location
-      try {
-        console.log('Tentando window.location.href...')
-        window.location.href = '/history'
-        console.log('window.location.href chamado')
-      } catch (locationError) {
-        console.error('❌ Erro no window.location:', locationError)
-        
-        // Tentativa 3: Fallback para window.open
-        try {
-          console.log('Tentando window.open...')
-          window.open('/history', '_self')
-          console.log('window.open chamado')
-        } catch (openError) {
-          console.error('❌ Erro no window.open:', openError)
-          showNotificationMessage('Erro ao navegar para o histórico. Tente recarregar a página.', 'error')
-        }
-      }
-    }
-  }
-}
-
-function navigateTo(path) {
-  console.log(`Navegando para: ${path}`)
-  try {
-    router.push(path)
-  } catch (error) {
-    console.error('Erro na navegação:', error)
-    window.location.href = path
   }
 }
 
