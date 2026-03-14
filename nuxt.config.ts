@@ -8,7 +8,7 @@ export default defineNuxtConfig({
     '@vite-pwa/nuxt'
   ],
   
-  // Configuração PWA com Workbox para cache agressivo
+  // Configuração PWA com CACHE VERSIONADO e ATUALIZAÇÃO AUTOMÁTICA
   pwa: {
     registerType: 'autoUpdate',
     manifest: {
@@ -43,61 +43,62 @@ export default defineNuxtConfig({
       ]
     },
     workbox: {
-      // Cache agressivo - Pre-cache de todos os assets
+      // Cache versionado - cada build gera nova versão
       globPatterns: ['**/*.{js,css,html,png,svg,ico,woff,woff2}'],
       
-      // Runtime caching strategies
+      // Runtime caching strategies com versionamento
       runtimeCaching: [
         {
-          // Cache para páginas - Network First com fallback para cache
+          // Cache para páginas HTML - Network First com versionamento
           urlPattern: /^https?:\/\/.*$/,
           handler: 'NetworkFirst',
           options: {
-            cacheName: 'pages-cache',
+            cacheName: 'agenda-pages-v1',
             expiration: {
-              maxEntries: 50,
-              maxAgeSeconds: 60 * 60 * 24 * 30 // 30 dias
+              maxEntries: 20,
+              maxAgeSeconds: 60 * 60 * 24 * 7 // 7 dias (mais curto para atualizações)
             },
             cacheableResponse: {
               statuses: [0, 200]
             },
-            networkTimeoutSeconds: 3
+            networkTimeoutSeconds: 2 // Timeout curto para forçar cache se lento
           }
         },
         {
-          // Cache para assets estáticos - Cache First
+          // Cache para assets estáticos - Cache First com versionamento
           urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/,
           handler: 'CacheFirst',
           options: {
-            cacheName: 'images-cache',
+            cacheName: 'agenda-images-v1',
             expiration: {
-              maxEntries: 100,
-              maxAgeSeconds: 60 * 60 * 24 * 365 // 1 ano
+              maxEntries: 50,
+              maxAgeSeconds: 60 * 60 * 24 * 30 // 30 dias
             }
           }
         },
         {
-          // Cache para fontes - Cache First
+          // Cache para fontes - Cache First com versionamento
           urlPattern: /\.(?:woff|woff2|ttf|eot)$/,
           handler: 'CacheFirst',
           options: {
-            cacheName: 'fonts-cache',
+            cacheName: 'agenda-fonts-v1',
             expiration: {
-              maxEntries: 20,
-              maxAgeSeconds: 60 * 60 * 24 * 365 // 1 ano
+              maxEntries: 10,
+              maxAgeSeconds: 60 * 60 * 24 * 60 // 60 dias
             }
           }
         },
         {
-          // Cache para scripts e estilos - Stale While Revalidate
+          // Cache para scripts e estilos - Network First para atualizações rápidas
           urlPattern: /\.(?:js|css)$/,
-          handler: 'StaleWhileRevalidate',
+          handler: 'NetworkFirst',
           options: {
-            cacheName: 'static-resources',
+            cacheName: 'agenda-assets-v1',
             expiration: {
-              maxEntries: 100,
-              maxAgeSeconds: 60 * 60 * 24 * 30 // 30 dias
-            }
+              maxEntries: 30,
+              maxAgeSeconds: 60 * 60 * 24 * 3 // 3 dias (curto para forçar atualização)
+            },
+            networkTimeoutSeconds: 3
           }
         }
       ],
@@ -106,25 +107,38 @@ export default defineNuxtConfig({
       navigateFallback: '/',
       navigateFallbackDenylist: [/^\/api/],
       
-      // Limpar caches antigos automaticamente
+      // Limpar TODOS os caches antigos automaticamente quando nova versão disponível
       cleanupOutdatedCaches: true,
       
-      // Ativar o novo SW imediatamente
+      // Forçar limpeza de caches com prefixo antigo
+      clientsClaim: true,
       skipWaiting: true,
-      clientsClaim: true
+      
+      // Configurações adicionais para limpeza agressiva
+      maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
+      
+      // Estratégia de versionamento explícita
+      cacheId: 'agenda-pwa-v1', // ID único para este app
+      
+      // Importar scripts de atualização customizados
+      importScripts: ['/sw-update-handler.js']
     },
     
-    // Configurações do cliente PWA
+    // Configurações do cliente PWA com notificação de atualização
     client: {
       installPrompt: true,
-      periodicSyncForUpdates: 3600 // Verificar atualizações a cada hora
+      periodicSyncForUpdates: 1800, // Verificar a cada 30 minutos
+      registerPlugin: true
     },
     
     // Estratégia de desenvolvimento
     devOptions: {
       enabled: true,
       suppressWarnings: true,
-      type: 'module'
+      type: 'module',
+      
+      // Forçar atualização em desenvolvimento
+      navigateFallbackAllowlist: [/^\/$/]
     }
   },
   
