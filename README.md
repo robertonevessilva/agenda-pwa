@@ -1,6 +1,6 @@
-# Agenda PWA - Aplicação para Celular
+# Agenda PWA - Aplicação offline para Celular
 
-Uma aplicação PWA (Progressive Web App) offline-first para gerenciamento de lembretes e compromissos, com armazenamento local no celular.
+Uma aplicação PWA (Progressive Web App) offline para gerenciamento de lembretes e compromissos, com armazenamento local no celular.
 
 ## 🚀 Funcionalidades
 
