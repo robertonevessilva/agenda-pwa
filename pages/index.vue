@@ -23,10 +23,10 @@
     <div class="actions">
       <div class="actions-row">
         <button class="btn" @click="openReminderForm()">
-          + Lembrete
+          Lembrete
         </button>
         <button class="btn" @click="openAppointmentForm()">
-          + Compromisso
+          Compromisso
         </button>
         <button class="btn" @click="navigateToHistory()">
           📋 Histórico
