@@ -90,6 +90,9 @@ export const useAgendaStore = defineStore('agenda', {
       remind_at: string
       notes?: string
       priority?: ReminderPriority
+      enableNotification?: boolean
+      enableSound?: boolean
+      enableVibration?: boolean
     }) {
       this.isLoading = true
       this.error = null
@@ -106,6 +109,12 @@ export const useAgendaStore = defineStore('agenda', {
 
         this.reminders.push(reminder)
         await this.loadAuditLogs()
+        
+        // Agendar notificação se ativada
+        if (payload.enableNotification !== false) {
+          await this.scheduleNotificationForReminder(reminder)
+        }
+        
         return reminder
       } catch (error) {
         console.error('Failed to create reminder:', error)
@@ -174,6 +183,9 @@ export const useAgendaStore = defineStore('agenda', {
       ends_at?: string
       location?: string
       notes?: string
+      enableNotification?: boolean
+      enableSound?: boolean
+      enableVibration?: boolean
     }) {
       this.isLoading = true
       this.error = null
@@ -191,6 +203,12 @@ export const useAgendaStore = defineStore('agenda', {
 
         this.appointments.push(appointment)
         await this.loadAuditLogs()
+        
+        // Agendar notificação se ativada
+        if (payload.enableNotification !== false) {
+          await this.scheduleNotificationForAppointment(appointment)
+        }
+        
         return appointment
       } catch (error) {
         console.error('Failed to create appointment:', error)

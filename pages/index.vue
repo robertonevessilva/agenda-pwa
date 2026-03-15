@@ -37,16 +37,6 @@
       <button v-if="isDevelopment" class="btn btn-debug" @click="runDebugTests()">
         🐛 Debug Navegação
       </button>
-      
-      <!-- Botão para testar notificações -->
-      <button class="btn btn-notification" @click="testNotification()">
-        🔔 Testar Notificação
-      </button>
-      
-      <!-- Botão para agendar notificações -->
-      <button class="btn btn-schedule" @click="scheduleAllNotifications()">
-        📅 Agendar Notificações
-      </button>
     </div>
 
     <!-- Notificação Toast -->
@@ -133,6 +123,27 @@
           />
         </div>
         
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" v-model="newReminder.enableNotification" />
+            <span>🔔 Ativar notificação no horário do lembrete</span>
+          </label>
+        </div>
+        
+        <div class="form-group" v-if="newReminder.enableNotification">
+          <label class="checkbox-label">
+            <input type="checkbox" v-model="newReminder.enableSound" />
+            <span>🔊 Ativar som de alarme</span>
+          </label>
+        </div>
+        
+        <div class="form-group" v-if="newReminder.enableNotification">
+          <label class="checkbox-label">
+            <input type="checkbox" v-model="newReminder.enableVibration" />
+            <span>📳 Ativar vibração (se suportado)</span>
+          </label>
+        </div>
+        
         <div class="form-actions">
           <button type="button" class="btn" @click="cancelReminderForm()">
             Cancelar
@@ -195,6 +206,27 @@
             v-model="newAppointment.notes"
             placeholder="Detalhes do compromisso..."
           />
+        </div>
+        
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" v-model="newAppointment.enableNotification" />
+            <span>🔔 Ativar notificação no horário do compromisso</span>
+          </label>
+        </div>
+        
+        <div class="form-group" v-if="newAppointment.enableNotification">
+          <label class="checkbox-label">
+            <input type="checkbox" v-model="newAppointment.enableSound" />
+            <span>🔊 Ativar som de alarme</span>
+          </label>
+        </div>
+        
+        <div class="form-group" v-if="newAppointment.enableNotification">
+          <label class="checkbox-label">
+            <input type="checkbox" v-model="newAppointment.enableVibration" />
+            <span>📳 Ativar vibração (se suportado)</span>
+          </label>
         </div>
         
         <div class="form-actions">
@@ -424,7 +456,10 @@ const newReminder = ref({
   title: '',
   remind_at: '',
   priority: 'MEDIUM',
-  notes: ''
+  notes: '',
+  enableNotification: true,
+  enableSound: true,
+  enableVibration: true
 })
 
 const newAppointment = ref({
@@ -432,7 +467,10 @@ const newAppointment = ref({
   starts_at: '',
   ends_at: '',
   location: '',
-  notes: ''
+  notes: '',
+  enableNotification: true,
+  enableSound: true,
+  enableVibration: true
 })
 
 // Computed properties
@@ -527,7 +565,10 @@ function cancelReminderForm() {
     title: '',
     remind_at: '',
     priority: 'MEDIUM',
-    notes: ''
+    notes: '',
+    enableNotification: true,
+    enableSound: true,
+    enableVibration: true
   }
 }
 
@@ -537,7 +578,10 @@ async function createReminder() {
       title: newReminder.value.title,
       remind_at: newReminder.value.remind_at,
       priority: newReminder.value.priority,
-      notes: newReminder.value.notes || undefined
+      notes: newReminder.value.notes || undefined,
+      enableNotification: newReminder.value.enableNotification,
+      enableSound: newReminder.value.enableSound,
+      enableVibration: newReminder.value.enableVibration
     })
     
     cancelReminderForm()
@@ -634,7 +678,10 @@ function cancelAppointmentForm() {
     starts_at: '',
     ends_at: '',
     location: '',
-    notes: ''
+    notes: '',
+    enableNotification: true,
+    enableSound: true,
+    enableVibration: true
   }
 }
 
@@ -645,7 +692,10 @@ async function createAppointment() {
       starts_at: newAppointment.value.starts_at,
       ends_at: newAppointment.value.ends_at || undefined,
       location: newAppointment.value.location || undefined,
-      notes: newAppointment.value.notes || undefined
+      notes: newAppointment.value.notes || undefined,
+      enableNotification: newAppointment.value.enableNotification,
+      enableSound: newAppointment.value.enableSound,
+      enableVibration: newAppointment.value.enableVibration
     })
     
     cancelAppointmentForm()
@@ -773,27 +823,6 @@ async function runDebugTests() {
   }
 }
 
-// Função para testar notificação
-async function testNotification() {
-  try {
-    await agendaStore.testNotification()
-    showNotificationMessage('Notificação de teste enviada! Verifique seu dispositivo.', 'success')
-  } catch (error) {
-    console.error('Error testing notification:', error)
-    showNotificationMessage('Erro ao testar notificação. Verifique as permissões.', 'error')
-  }
-}
-
-// Função para agendar todas as notificações
-async function scheduleAllNotifications() {
-  try {
-    await agendaStore.scheduleAllNotifications()
-    showNotificationMessage('Notificações agendadas para todos os itens pendentes!', 'success')
-  } catch (error) {
-    console.error('Error scheduling notifications:', error)
-    showNotificationMessage('Erro ao agendar notificações.', 'error')
-  }
-}
 </script>
 
 <style scoped>
@@ -910,22 +939,6 @@ h1 {
 
 .btn-debug:hover {
   background: #7b1fa2;
-}
-
-.btn-notification {
-  background: #ff9800;
-}
-
-.btn-notification:hover {
-  background: #f57c00;
-}
-
-.btn-schedule {
-  background: #4caf50;
-}
-
-.btn-schedule:hover {
-  background: #388e3c;
 }
 
 .filters {
@@ -1383,5 +1396,25 @@ h1 {
     max-width: none;
     min-width: auto;
   }
+}
+
+/* Estilos para checkboxes */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 8px 0;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.checkbox-label span {
+  font-size: 14px;
+  color: #333;
 }
 </style>
