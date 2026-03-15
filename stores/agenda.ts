@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { useLocalStorageDB } from '~/composables/useLocalStorageDB'
+import { useNotifications } from '~/composables/useNotifications'
 
 export type ReminderPriority = 'LOW' | 'MEDIUM' | 'HIGH'
 
@@ -284,6 +285,105 @@ export const useAgendaStore = defineStore('agenda', {
         console.error('Failed to delete all audit logs:', error)
         this.error = error instanceof Error ? error.message : 'Unknown error'
         throw error
+      }
+    },
+
+    // Métodos para gerenciar notificações
+    async scheduleNotificationForReminder(reminder: Reminder) {
+      try {
+        const notifications = useNotifications()
+        const scheduledTime = new Date(reminder.remind_at)
+        
+        // Agendar notificação 5 minutos antes (opcional)
+        const notificationTime = new Date(scheduledTime.getTime() - 5 * 60 * 1000)
+        
+        return notifications.scheduleNotification(
+          'reminder',
+          reminder.id,
+          reminder.title,
+          notificationTime
+        )
+      } catch (error) {
+        console.error('Failed to schedule notification for reminder:', error)
+        return null
+      }
+    },
+
+    async scheduleNotificationForAppointment(appointment: Appointment) {
+      try {
+        const notifications = useNotifications()
+        const scheduledTime = new Date(appointment.starts_at)
+        
+        // Agendar notificação 10 minutos antes (opcional)
+        const notificationTime = new Date(scheduledTime.getTime() - 10 * 60 * 1000)
+        
+        return notifications.scheduleNotification(
+          'appointment',
+          appointment.id,
+          appointment.title,
+          notificationTime
+        )
+      } catch (error) {
+        console.error('Failed to schedule notification for appointment:', error)
+        return null
+      }
+    },
+
+    async cancelNotificationForItem(itemId: string) {
+      try {
+        const notifications = useNotifications()
+        notifications.cancelAllNotificationsForItem(itemId)
+      } catch (error) {
+        console.error('Failed to cancel notification for item:', error)
+      }
+    },
+
+    async scheduleAllNotifications() {
+      try {
+        const notifications = useNotifications()
+        
+        // Cancelar todas as notificações existentes
+        notifications.clearAllScheduledNotifications()
+        
+        // Agendar notificações para lembretes pendentes
+        const upcomingReminders = this.getUpcomingReminders(100)
+        for (const reminder of upcomingReminders) {
+          await this.scheduleNotificationForReminder(reminder)
+        }
+        
+        // Agendar notificações para compromissos pendentes
+        const upcomingAppointments = this.getUpcomingAppointments(100)
+        for (const appointment of upcomingAppointments) {
+          await this.scheduleNotificationForAppointment(appointment)
+        }
+        
+        console.log(`📅 Notificações agendadas: ${upcomingReminders.length} lembretes, ${upcomingAppointments.length} compromissos`)
+      } catch (error) {
+        console.error('Failed to schedule all notifications:', error)
+      }
+    },
+
+    async testNotification() {
+      try {
+        const notifications = useNotifications()
+        
+        // Solicitar permissão se necessário
+        if (!notifications.isPermissionGranted.value) {
+          await notifications.requestPermission()
+        }
+        
+        // Testar notificação
+        await notifications.showNotification({
+          title: '🔔 Teste de Notificação',
+          body: 'Esta é uma notificação de teste da Agenda PWA!',
+          icon: '/icon-192.png',
+          vibrate: [200, 100, 200],
+          requireInteraction: true
+        })
+        
+        console.log('✅ Notificação de teste enviada')
+      } catch (error) {
+        console.error('Failed to test notification:', error)
       }
     },
 

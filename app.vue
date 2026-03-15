@@ -8,11 +8,18 @@
 <script setup>
 import { onMounted } from 'vue'
 import { useAgendaStore } from '~/stores/agenda'
+import { useNotifications } from '~/composables/useNotifications'
 
 const agendaStore = useAgendaStore()
+const notifications = useNotifications()
 
 onMounted(async () => {
   await agendaStore.initialize()
+  
+  // Agendar notificações para todos os itens pendentes
+  setTimeout(async () => {
+    await agendaStore.scheduleAllNotifications()
+  }, 2000) // Aguardar 2 segundos para garantir que os dados foram carregados
 })
 </script>
 

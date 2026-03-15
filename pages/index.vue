@@ -37,6 +37,16 @@
       <button v-if="isDevelopment" class="btn btn-debug" @click="runDebugTests()">
         🐛 Debug Navegação
       </button>
+      
+      <!-- Botão para testar notificações -->
+      <button class="btn btn-notification" @click="testNotification()">
+        🔔 Testar Notificação
+      </button>
+      
+      <!-- Botão para agendar notificações -->
+      <button class="btn btn-schedule" @click="scheduleAllNotifications()">
+        📅 Agendar Notificações
+      </button>
     </div>
 
     <!-- Notificação Toast -->
@@ -762,6 +772,29 @@ async function runDebugTests() {
     showNotificationMessage('Erro ao executar testes de debug. Verifique o console.', 'error')
   }
 }
+
+// Função para testar notificação
+async function testNotification() {
+  try {
+    await agendaStore.testNotification()
+    showNotificationMessage('Notificação de teste enviada! Verifique seu dispositivo.', 'success')
+  } catch (error) {
+    console.error('Error testing notification:', error)
+    showNotificationMessage('Erro ao testar notificação. Verifique as permissões.', 'error')
+  }
+}
+
+// Função para agendar todas as notificações
+async function scheduleAllNotifications() {
+  try {
+    await agendaStore.scheduleAllNotifications()
+    showNotificationMessage('Notificações agendadas para todos os itens pendentes!', 'success')
+  } catch (error) {
+    console.error('Error scheduling notifications:', error)
+    showNotificationMessage('Erro ao agendar notificações.', 'error')
+  }
+}
+}
 </script>
 
 <style scoped>
@@ -878,6 +911,22 @@ h1 {
 
 .btn-debug:hover {
   background: #7b1fa2;
+}
+
+.btn-notification {
+  background: #ff9800;
+}
+
+.btn-notification:hover {
+  background: #f57c00;
+}
+
+.btn-schedule {
+  background: #4caf50;
+}
+
+.btn-schedule:hover {
+  background: #388e3c;
 }
 
 .filters {
