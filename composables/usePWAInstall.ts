@@ -8,6 +8,7 @@ export const usePWAInstall = () => {
   const canInstall = ref(false)
   const deferredPrompt = ref<any>(null)
   const showInstallButton = ref(false)
+  const userHasInteracted = ref(false)
 
   // Verificar se o app já está instalado
   const checkIfInstalled = () => {

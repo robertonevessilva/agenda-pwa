@@ -3,18 +3,27 @@
     <div class="pwa-install-banner">
       <div class="pwa-install-content">
         <div class="pwa-install-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
             <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
           </svg>
         </div>
         <div class="pwa-install-text">
-          <h3>Instalar Agenda</h3>
-          <p>Instale o app para acesso rápido e uso offline</p>
+          <h3>📱 Instalar Agenda no Celular</h3>
+          <p>Para acesso rápido e uso offline:</p>
+          <ul class="pwa-install-features">
+            <li>✅ Acesso direto da tela inicial</li>
+            <li>✅ Funciona sem internet</li>
+            <li>✅ Notificações de lembretes</li>
+            <li>✅ Mais rápido que navegador</li>
+          </ul>
+          <p class="pwa-install-hint">
+            <small>Clique em "Instalar" e siga as instruções do seu navegador</small>
+          </p>
         </div>
       </div>
       <div class="pwa-install-actions">
         <button @click="install" class="pwa-install-btn">
-          Instalar
+          📲 Instalar App
         </button>
         <button @click="dismiss" class="pwa-dismiss-btn">
           Agora não
@@ -90,10 +99,29 @@ onMounted(() => {
 }
 
 .pwa-install-text p {
-  margin: 0;
+  margin: 0 0 8px 0;
   font-size: 14px;
   color: #666;
   line-height: 1.4;
+}
+
+.pwa-install-features {
+  margin: 8px 0 8px 16px;
+  padding: 0;
+  font-size: 13px;
+  color: #555;
+  line-height: 1.4;
+}
+
+.pwa-install-features li {
+  margin-bottom: 4px;
+}
+
+.pwa-install-hint {
+  margin: 8px 0 0 0 !important;
+  font-size: 12px !important;
+  color: #888 !important;
+  font-style: italic;
 }
 
 .pwa-install-actions {
