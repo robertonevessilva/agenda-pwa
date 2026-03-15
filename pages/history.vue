@@ -67,7 +67,7 @@
 
     <div class="card">
       <div class="section-header">
-        <h2>Registros ({{ filteredLogs.length }})</h2>
+        <h2>Registros</h2>
         <div v-if="filteredLogs.length > 0" class="section-actions">
           <button class="btn btn-small" @click="refreshHistory" title="Atualizar histórico">
             🔄 Atualizar
@@ -79,6 +79,11 @@
             🗑️ Excluir Todos
           </button>
         </div>
+      </div>
+      
+      <div class="records-count">
+        <span class="count-number">{{ filteredLogs.length }}</span>
+        <span class="count-label">registro(s) encontrado(s)</span>
       </div>
       
       <div v-if="filteredLogs.length === 0" class="empty-state">
@@ -862,8 +867,44 @@ h1 {
   color: #c62828;
 }
 
+/* Estilos para contagem de registros */
+.records-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: #e3f2fd;
+  border-radius: 8px;
+  border-left: 4px solid #1976d2;
+}
+
+.count-number {
+  font-size: 24px;
+  font-weight: bold;
+  color: #1976d2;
+}
+
+.count-label {
+  font-size: 16px;
+  color: #555;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
+  .records-count {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .count-number {
+    font-size: 20px;
+  }
+  
+  .count-label {
+    font-size: 14px;
+  }
   .logs-grid {
     grid-template-columns: 1fr;
   }
