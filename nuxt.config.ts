@@ -3,6 +3,9 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   
+  // Renderizar apenas no cliente (SPA mode) - necessário para PWA com localStorage
+  ssr: false,
+  
   modules: [
     '@pinia/nuxt',
     '@vite-pwa/nuxt'
