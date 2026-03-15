@@ -78,7 +78,6 @@
             🗑️ Excluir Todos
           </button>
         </div>
-        <h2>Registros</h2>
       </div>
       
       <div class="records-count">
