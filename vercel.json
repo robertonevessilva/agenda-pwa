@@ -1,6 +1,6 @@
 {
   "buildCommand": "npm run generate",
-  "outputDirectory": "dist",
+  "outputDirectory": ".vercel/output/static",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nuxtjs",
