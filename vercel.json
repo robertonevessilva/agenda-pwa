@@ -11,9 +11,6 @@
   "env": {
     "NODE_VERSION": "22"
   },
-  "functions": {
-    "maxDuration": 10
-  },
   "headers": [
     {
       "source": "/(.*)",
