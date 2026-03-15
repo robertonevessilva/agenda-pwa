@@ -67,7 +67,6 @@
 
     <div class="card">
       <div class="section-header">
-        <h2>Registros</h2>
         <div v-if="filteredLogs.length > 0" class="section-actions">
           <button class="btn btn-small" @click="refreshHistory" title="Atualizar histórico">
             🔄 Atualizar
@@ -79,6 +78,7 @@
             🗑️ Excluir Todos
           </button>
         </div>
+        <h2>Registros</h2>
       </div>
       
       <div class="records-count">
