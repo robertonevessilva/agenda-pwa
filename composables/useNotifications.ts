@@ -32,6 +32,12 @@ export const useNotifications = () => {
 
   // Verificar suporte a notificações
   const checkSupport = () => {
+    // Verificar se estamos no cliente (não no servidor)
+    if (typeof window === 'undefined') {
+      isSupported.value = false
+      return false
+    }
+    
     const supported = 'Notification' in window && 'AudioContext' in window
     isSupported.value = supported
     console.log('Notification support:', supported)
@@ -40,8 +46,8 @@ export const useNotifications = () => {
 
   // Solicitar permissão para notificações
   const requestPermission = async (): Promise<boolean> => {
-    if (!isSupported.value) {
-      console.warn('Notifications not supported')
+    if (!isSupported.value || typeof window === 'undefined') {
+      console.warn('Notifications not supported or not in browser environment')
       return false
     }
 
@@ -58,6 +64,11 @@ export const useNotifications = () => {
 
   // Carregar som de notificação
   const loadNotificationSound = async () => {
+    if (typeof window === 'undefined') {
+      console.warn('Cannot load sound in server environment')
+      return
+    }
+
     if (!audioContext.value) {
       audioContext.value = new (window.AudioContext || (window as any).webkitAudioContext)()
     }
@@ -89,7 +100,7 @@ export const useNotifications = () => {
 
   // Tocar som de notificação
   const playNotificationSound = () => {
-    if (!audioContext.value || !notificationSound.value) {
+    if (typeof window === 'undefined' || !audioContext.value || !notificationSound.value) {
       console.warn('Audio context or sound not available')
       return
     }
@@ -107,19 +118,21 @@ export const useNotifications = () => {
 
   // Vibrar dispositivo (se suportado)
   const vibrateDevice = (pattern: number[] = [200, 100, 200]) => {
-    if ('vibrate' in navigator) {
-      try {
-        navigator.vibrate(pattern)
-        console.log('Device vibrated')
-      } catch (error) {
-        console.error('Error vibrating device:', error)
-      }
+    if (typeof navigator === 'undefined' || !('vibrate' in navigator)) {
+      return
+    }
+
+    try {
+      navigator.vibrate(pattern)
+      console.log('Device vibrated')
+    } catch (error) {
+      console.error('Error vibrating device:', error)
     }
   }
 
   // Mostrar notificação
   const showNotification = async (options: NotificationOptions): Promise<Notification | null> => {
-    if (!isSupported.value || !isPermissionGranted.value) {
+    if (typeof window === 'undefined' || !isSupported.value || !isPermissionGranted.value) {
       console.warn('Notifications not supported or permission not granted')
       return null
     }
@@ -253,6 +266,11 @@ export const useNotifications = () => {
 
   // Inicializar
   onMounted(async () => {
+    // Só inicializar no cliente
+    if (typeof window === 'undefined') {
+      return
+    }
+    
     checkSupport()
     
     if (isSupported.value) {

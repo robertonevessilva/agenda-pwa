@@ -794,7 +794,6 @@ async function scheduleAllNotifications() {
     showNotificationMessage('Erro ao agendar notificações.', 'error')
   }
 }
-}
 </script>
 
 <style scoped>
