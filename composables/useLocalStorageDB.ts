@@ -33,12 +33,24 @@ export interface AuditLog {
   created_at: string
 }
 
+export interface NotificationSettings {
+  id: string
+  itemId: string
+  itemType: 'reminder' | 'appointment'
+  enableNotification: boolean
+  enableSound: boolean
+  enableVibration: boolean
+  created_at: string
+  updated_at: string
+}
+
 class LocalStorageDB {
   private isInitialized = false
   private readonly STORAGE_KEYS = {
     REMINDERS: 'agenda-reminders',
     APPOINTMENTS: 'agenda-appointments',
-    AUDIT_LOGS: 'agenda-audit-logs'
+    AUDIT_LOGS: 'agenda-audit-logs',
+    NOTIFICATION_SETTINGS: 'agenda-notification-settings'
   }
 
   async initialize() {
@@ -59,6 +71,9 @@ class LocalStorageDB {
     }
     if (!localStorage.getItem(this.STORAGE_KEYS.AUDIT_LOGS)) {
       localStorage.setItem(this.STORAGE_KEYS.AUDIT_LOGS, JSON.stringify([]))
+    }
+    if (!localStorage.getItem(this.STORAGE_KEYS.NOTIFICATION_SETTINGS)) {
+      localStorage.setItem(this.STORAGE_KEYS.NOTIFICATION_SETTINGS, JSON.stringify([]))
     }
     
     this.isInitialized = true
@@ -309,6 +324,89 @@ class LocalStorageDB {
     this.setAuditLogsToStorage(logs)
   }
 
+  // Métodos para configurações de notificação
+  private getNotificationSettingsFromStorage(): NotificationSettings[] {
+    const data = localStorage.getItem(this.STORAGE_KEYS.NOTIFICATION_SETTINGS)
+    return data ? JSON.parse(data) : []
+  }
+
+  private setNotificationSettingsToStorage(settings: NotificationSettings[]) {
+    localStorage.setItem(this.STORAGE_KEYS.NOTIFICATION_SETTINGS, JSON.stringify(settings))
+  }
+
+  async getNotificationSettings(itemId: string, itemType: 'reminder' | 'appointment'): Promise<NotificationSettings | null> {
+    await this.initialize()
+    const settings = this.getNotificationSettingsFromStorage()
+    return settings.find(s => s.itemId === itemId && s.itemType === itemType) || null
+  }
+
+  async saveNotificationSettings(
+    itemId: string, 
+    itemType: 'reminder' | 'appointment',
+    enableNotification: boolean,
+    enableSound: boolean,
+    enableVibration: boolean
+  ): Promise<NotificationSettings> {
+    await this.initialize()
+    
+    const settings = this.getNotificationSettingsFromStorage()
+    const existingIndex = settings.findIndex(s => s.itemId === itemId && s.itemType === itemType)
+    
+    const now = new Date().toISOString()
+    
+    if (existingIndex !== -1) {
+      // Atualizar configuração existente
+      const existingSetting = settings[existingIndex]
+      if (!existingSetting) {
+        throw new Error('Existing setting not found')
+      }
+      
+      const updatedSetting: NotificationSettings = {
+        id: existingSetting.id,
+        itemId: existingSetting.itemId,
+        itemType: existingSetting.itemType,
+        enableNotification,
+        enableSound,
+        enableVibration,
+        created_at: existingSetting.created_at,
+        updated_at: now
+      }
+      
+      settings[existingIndex] = updatedSetting
+      this.setNotificationSettingsToStorage(settings)
+      return updatedSetting
+    } else {
+      // Criar nova configuração
+      const newSetting: NotificationSettings = {
+        id: crypto.randomUUID(),
+        itemId,
+        itemType,
+        enableNotification,
+        enableSound,
+        enableVibration,
+        created_at: now,
+        updated_at: now
+      }
+      
+      settings.push(newSetting)
+      this.setNotificationSettingsToStorage(settings)
+      return newSetting
+    }
+  }
+
+  async deleteNotificationSettings(itemId: string, itemType: 'reminder' | 'appointment'): Promise<void> {
+    await this.initialize()
+    
+    const settings = this.getNotificationSettingsFromStorage()
+    const filteredSettings = settings.filter(s => !(s.itemId === itemId && s.itemType === itemType))
+    this.setNotificationSettingsToStorage(filteredSettings)
+  }
+
+  async deleteAllNotificationSettings(): Promise<void> {
+    await this.initialize()
+    this.setNotificationSettingsToStorage([])
+  }
+
   async close() {
     // localStorage não precisa de close
     this.isInitialized = false
@@ -340,6 +438,20 @@ export function useLocalStorageDB() {
     getAuditLogs: (limit?: number) => localStorageDB.getAuditLogs(limit),
     deleteAuditLog: (id: string) => localStorageDB.deleteAuditLog(id),
     deleteAllAuditLogs: () => localStorageDB.deleteAllAuditLogs(),
+    
+    // Métodos para configurações de notificação
+    getNotificationSettings: (itemId: string, itemType: 'reminder' | 'appointment') =>
+      localStorageDB.getNotificationSettings(itemId, itemType),
+    saveNotificationSettings: (
+      itemId: string, 
+      itemType: 'reminder' | 'appointment',
+      enableNotification: boolean,
+      enableSound: boolean,
+      enableVibration: boolean
+    ) => localStorageDB.saveNotificationSettings(itemId, itemType, enableNotification, enableSound, enableVibration),
+    deleteNotificationSettings: (itemId: string, itemType: 'reminder' | 'appointment') =>
+      localStorageDB.deleteNotificationSettings(itemId, itemType),
+    deleteAllNotificationSettings: () => localStorageDB.deleteAllNotificationSettings(),
     
     close: () => localStorageDB.close()
   }

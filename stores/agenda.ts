@@ -110,6 +110,17 @@ export const useAgendaStore = defineStore('agenda', {
         this.reminders.push(reminder)
         await this.loadAuditLogs()
         
+        // Salvar configurações de notificação
+        if (payload.enableNotification !== undefined) {
+          await db.saveNotificationSettings(
+            reminder.id,
+            'reminder',
+            payload.enableNotification,
+            payload.enableSound ?? true,
+            payload.enableVibration ?? true
+          )
+        }
+        
         // Agendar notificação se ativada
         if (payload.enableNotification !== false) {
           await this.scheduleNotificationForReminder(reminder)
@@ -203,6 +214,17 @@ export const useAgendaStore = defineStore('agenda', {
 
         this.appointments.push(appointment)
         await this.loadAuditLogs()
+        
+        // Salvar configurações de notificação
+        if (payload.enableNotification !== undefined) {
+          await db.saveNotificationSettings(
+            appointment.id,
+            'appointment',
+            payload.enableNotification,
+            payload.enableSound ?? true,
+            payload.enableVibration ?? true
+          )
+        }
         
         // Agendar notificação se ativada
         if (payload.enableNotification !== false) {
@@ -398,6 +420,144 @@ export const useAgendaStore = defineStore('agenda', {
         console.log('✅ Notificação de teste enviada')
       } catch (error) {
         console.error('Failed to test notification:', error)
+      }
+    },
+
+    // Métodos para recuperar configurações de notificação
+    async getReminderNotificationSettings(id: string) {
+      try {
+        const db = useLocalStorageDB()
+        const settings = await db.getNotificationSettings(id, 'reminder')
+        return settings || {
+          enableNotification: true,
+          enableSound: true,
+          enableVibration: true
+        }
+      } catch (error) {
+        console.error('Failed to get reminder notification settings:', error)
+        return {
+          enableNotification: true,
+          enableSound: true,
+          enableVibration: true
+        }
+      }
+    },
+
+    async getAppointmentNotificationSettings(id: string) {
+      try {
+        const db = useLocalStorageDB()
+        const settings = await db.getNotificationSettings(id, 'appointment')
+        return settings || {
+          enableNotification: true,
+          enableSound: true,
+          enableVibration: true
+        }
+      } catch (error) {
+        console.error('Failed to get appointment notification settings:', error)
+        return {
+          enableNotification: true,
+          enableSound: true,
+          enableVibration: true
+        }
+      }
+    },
+
+    async updateReminderWithNotificationSettings(
+      id: string,
+      payload: Partial<{
+        title: string
+        notes: string
+        remind_at: string
+        priority: ReminderPriority
+        done: boolean
+      }>,
+      notificationSettings?: {
+        enableNotification: boolean
+        enableSound: boolean
+        enableVibration: boolean
+      }
+    ) {
+      this.isLoading = true
+      this.error = null
+
+      try {
+        const db = useLocalStorageDB()
+        const reminder = await db.updateReminder(id, payload)
+
+        const index = this.reminders.findIndex(r => r.id === id)
+        if (index !== -1) {
+          this.reminders[index] = reminder
+        }
+
+        // Atualizar configurações de notificação se fornecidas
+        if (notificationSettings) {
+          await db.saveNotificationSettings(
+            id,
+            'reminder',
+            notificationSettings.enableNotification,
+            notificationSettings.enableSound,
+            notificationSettings.enableVibration
+          )
+        }
+
+        await this.loadAuditLogs()
+        return reminder
+      } catch (error) {
+        console.error('Failed to update reminder with notification settings:', error)
+        this.error = error instanceof Error ? error.message : 'Unknown error'
+        throw error
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    async updateAppointmentWithNotificationSettings(
+      id: string,
+      payload: Partial<{
+        title: string
+        location: string
+        notes: string
+        starts_at: string
+        ends_at: string
+        done: boolean
+      }>,
+      notificationSettings?: {
+        enableNotification: boolean
+        enableSound: boolean
+        enableVibration: boolean
+      }
+    ) {
+      this.isLoading = true
+      this.error = null
+
+      try {
+        const db = useLocalStorageDB()
+        const appointment = await db.updateAppointment(id, payload)
+
+        const index = this.appointments.findIndex(a => a.id === id)
+        if (index !== -1) {
+          this.appointments[index] = appointment
+        }
+
+        // Atualizar configurações de notificação se fornecidas
+        if (notificationSettings) {
+          await db.saveNotificationSettings(
+            id,
+            'appointment',
+            notificationSettings.enableNotification,
+            notificationSettings.enableSound,
+            notificationSettings.enableVibration
+          )
+        }
+
+        await this.loadAuditLogs()
+        return appointment
+      } catch (error) {
+        console.error('Failed to update appointment with notification settings:', error)
+        this.error = error instanceof Error ? error.message : 'Unknown error'
+        throw error
+      } finally {
+        this.isLoading = false
       }
     },
 

@@ -427,40 +427,27 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from '#imports'
+import { useRouter } from 'vue-router'
 import { useAgendaStore } from '~/stores/agenda'
+import { useNotifications } from '~/composables/useNotifications'
 
 const router = useRouter()
 const agendaStore = useAgendaStore()
+const notifications = useNotifications()
 
-// Estados do formulário
+// Estado do formulário
 const showReminderForm = ref(false)
 const showAppointmentForm = ref(false)
-const editingReminder = ref(null)
-const editingAppointment = ref(null)
+const editingReminder = ref<any>(null)
+const editingAppointment = ref<any>(null)
 
-// Estados dos modais
-const showViewModal = ref(false)
-const showConfirmModal = ref(false)
-const viewModalData = ref({})
-const confirmMessage = ref('')
-const itemToDelete = ref({ id: null, type: null })
-
-// Sistema de notificações
-const showNotification = ref(false)
-const notificationMessage = ref('')
-const notificationType = ref('info') // 'info', 'success', 'warning', 'error'
-
-// Filtro de visualização
-const viewFilter = ref('all')
-
-// Dados dos formulários
+// Novos itens
 const newReminder = ref({
   title: '',
   remind_at: '',
-  priority: 'MEDIUM',
+  priority: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH',
   notes: '',
   enableNotification: true,
   enableSound: true,
@@ -478,94 +465,49 @@ const newAppointment = ref({
   enableVibration: true
 })
 
-// Computed properties
+// Filtros
+const viewFilter = ref<'all' | 'reminders' | 'appointments'>('all')
+
+// Modais
+const showViewModal = ref(false)
+const showConfirmModal = ref(false)
+const viewModalData = ref<any>(null)
+const confirmMessage = ref('')
+const itemToDelete = ref<{type: 'reminder' | 'appointment', id: string} | null>(null)
+
+// Notificações toast
+const showNotification = ref(false)
+const notificationMessage = ref('')
+const notificationType = ref<'info' | 'success' | 'warning' | 'error'>('info')
+
+// Ambiente
+const isDevelopment = ref(process.env.NODE_ENV === 'development')
+
+// Computed
 const filteredReminders = computed(() => {
-  const reminders = [...agendaStore.reminders]
-    .sort((a, b) => new Date(a.remind_at).getTime() - new Date(b.remind_at).getTime())
-  
-  if (viewFilter.value === 'reminders' || viewFilter.value === 'all') {
-    return reminders
-  }
-  return []
+  if (viewFilter.value === 'appointments') return []
+  return agendaStore.reminders
 })
 
 const filteredAppointments = computed(() => {
-  const appointments = [...agendaStore.appointments]
-    .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())
-  
-  if (viewFilter.value === 'appointments' || viewFilter.value === 'all') {
-    return appointments
-  }
-  return []
+  if (viewFilter.value === 'reminders') return []
+  return agendaStore.appointments
 })
 
-// Verificar se está em desenvolvimento
-const isDevelopment = ref(process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost')
-
-// Inicialização
-onMounted(async () => {
-  await agendaStore.initialize()
-})
-
-// Funções utilitárias
-function formatDateTime(dateTime) {
-  const date = new Date(dateTime)
-  return date.toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-
-function isPastDate(dateTime) {
-  return new Date(dateTime) < new Date()
-}
-
-// Funções de notificação
-function showNotificationMessage(message, type = 'info') {
-  notificationMessage.value = message
-  notificationType.value = type
-  showNotification.value = true
-  
-  // Auto-hide após 3 segundos
-  setTimeout(() => {
-    showNotification.value = false
-  }, 3000)
-}
-
-// Funções de Lembretes
-function openReminderForm(reminder = null) {
-  if (reminder) {
-    editingReminder.value = reminder.id
-    newReminder.value = {
-      title: reminder.title,
-      remind_at: reminder.remind_at.slice(0, 16), // Formato datetime-local
-      priority: reminder.priority,
-      notes: reminder.notes || ''
-    }
-  } else {
-    editingReminder.value = null
-    newReminder.value = {
-      title: '',
-      remind_at: '',
-      priority: 'MEDIUM',
-      notes: ''
-    }
-  }
+// Métodos
+const openReminderForm = () => {
+  resetReminderForm()
   showReminderForm.value = true
-  
-  // Se já estiver no formulário de compromissos, mostrar mensagem
-  if (showAppointmentForm.value) {
-    showNotificationMessage('Você está alternando para o formulário de Lembretes. O formulário de Compromissos foi fechado.', 'info')
-    cancelAppointmentForm()
-  }
+  showAppointmentForm.value = false
 }
 
-function cancelReminderForm() {
+const openAppointmentForm = () => {
+  resetAppointmentForm()
+  showAppointmentForm.value = true
   showReminderForm.value = false
-  editingReminder.value = null
+}
+
+const resetReminderForm = () => {
   newReminder.value = {
     title: '',
     remind_at: '',
@@ -575,109 +517,10 @@ function cancelReminderForm() {
     enableSound: true,
     enableVibration: true
   }
+  editingReminder.value = null
 }
 
-async function createReminder() {
-  try {
-    await agendaStore.createReminder({
-      title: newReminder.value.title,
-      remind_at: newReminder.value.remind_at,
-      priority: newReminder.value.priority,
-      notes: newReminder.value.notes || undefined,
-      enableNotification: newReminder.value.enableNotification,
-      enableSound: newReminder.value.enableSound,
-      enableVibration: newReminder.value.enableVibration
-    })
-    
-    cancelReminderForm()
-  } catch (error) {
-    console.error('Error creating reminder:', error)
-  }
-}
-
-async function updateExistingReminder() {
-  try {
-    await agendaStore.updateReminder(editingReminder.value, {
-      title: newReminder.value.title,
-      remind_at: newReminder.value.remind_at,
-      priority: newReminder.value.priority,
-      notes: newReminder.value.notes || undefined
-    })
-    
-    cancelReminderForm()
-  } catch (error) {
-    console.error('Error updating reminder:', error)
-  }
-}
-
-function editReminder(reminder) {
-  openReminderForm(reminder)
-  // Rolar para o formulário após um pequeno delay para garantir que ele foi renderizado
-  setTimeout(() => {
-    const formElement = document.getElementById('edit-reminder-form')
-    if (formElement) {
-      formElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-  }, 100)
-}
-
-function viewReminderDetails(reminder) {
-  viewModalData.value = {
-    ...reminder,
-    type: 'reminder'
-  }
-  showViewModal.value = true
-}
-
-async function toggleReminderDone(reminder) {
-  try {
-    await agendaStore.updateReminder(reminder.id, {
-      done: !reminder.done
-    })
-  } catch (error) {
-    console.error('Error updating reminder:', error)
-  }
-}
-
-async function deleteReminder(id) {
-  itemToDelete.value = { id, type: 'reminder' }
-  confirmMessage.value = 'Tem certeza que deseja excluir este lembrete?'
-  showConfirmModal.value = true
-}
-
-// Funções de Compromissos
-function openAppointmentForm(appointment = null) {
-  if (appointment) {
-    editingAppointment.value = appointment.id
-    newAppointment.value = {
-      title: appointment.title,
-      starts_at: appointment.starts_at.slice(0, 16),
-      ends_at: appointment.ends_at ? appointment.ends_at.slice(0, 16) : '',
-      location: appointment.location || '',
-      notes: appointment.notes || ''
-    }
-  } else {
-    editingAppointment.value = null
-    newAppointment.value = {
-      title: '',
-      starts_at: '',
-      ends_at: '',
-      location: '',
-      notes: ''
-    }
-  }
-  showAppointmentForm.value = true
-  
-  // Se já estiver no formulário de lembretes, mostrar mensagem
-  if (showReminderForm.value) {
-    showNotificationMessage('Você está alternando para o formulário de Compromissos. O formulário de Lembretes foi fechado.', 'info')
-    cancelReminderForm()
-  }
-}
-
-function cancelAppointmentForm() {
-  showAppointmentForm.value = false
-  editingAppointment.value = null
+const resetAppointmentForm = () => {
   newAppointment.value = {
     title: '',
     starts_at: '',
@@ -688,55 +531,248 @@ function cancelAppointmentForm() {
     enableSound: true,
     enableVibration: true
   }
+  editingAppointment.value = null
 }
 
-async function createAppointment() {
+const editReminder = async (reminder: any) => {
+  editingReminder.value = reminder
+  
+  // Buscar configurações de notificação salvas
+  const notificationSettings = await agendaStore.getReminderNotificationSettings(reminder.id)
+  
+  newReminder.value = {
+    title: reminder.title,
+    remind_at: reminder.remind_at.slice(0, 16), // Formato datetime-local
+    priority: reminder.priority,
+    notes: reminder.notes || '',
+    enableNotification: notificationSettings.enableNotification,
+    enableSound: notificationSettings.enableSound,
+    enableVibration: notificationSettings.enableVibration
+  }
+  showReminderForm.value = true
+  showAppointmentForm.value = false
+}
+
+const editAppointment = async (appointment: any) => {
+  editingAppointment.value = appointment
+  
+  // Buscar configurações de notificação salvas
+  const notificationSettings = await agendaStore.getAppointmentNotificationSettings(appointment.id)
+  
+  newAppointment.value = {
+    title: appointment.title,
+    starts_at: appointment.starts_at.slice(0, 16),
+    ends_at: appointment.ends_at ? appointment.ends_at.slice(0, 16) : '',
+    location: appointment.location || '',
+    notes: appointment.notes || '',
+    enableNotification: notificationSettings.enableNotification,
+    enableSound: notificationSettings.enableSound,
+    enableVibration: notificationSettings.enableVibration
+  }
+  showAppointmentForm.value = true
+  showReminderForm.value = false
+}
+
+const createReminder = async () => {
   try {
-    await agendaStore.createAppointment({
+    const reminder = await agendaStore.createReminder({
+      title: newReminder.value.title,
+      remind_at: newReminder.value.remind_at,
+      notes: newReminder.value.notes,
+      priority: newReminder.value.priority,
+      enableNotification: newReminder.value.enableNotification,
+      enableSound: newReminder.value.enableSound,
+      enableVibration: newReminder.value.enableVibration
+    })
+    
+    showNotificationMessage('Lembrete criado com sucesso!', 'success')
+    resetReminderForm()
+    showReminderForm.value = false
+  } catch (error) {
+    showNotificationMessage('Erro ao criar lembrete', 'error')
+  }
+}
+
+const updateExistingReminder = async () => {
+  if (!editingReminder.value) return
+  
+  try {
+    await agendaStore.updateReminderWithNotificationSettings(
+      editingReminder.value.id,
+      {
+        title: newReminder.value.title,
+        remind_at: newReminder.value.remind_at,
+        notes: newReminder.value.notes,
+        priority: newReminder.value.priority
+      },
+      {
+        enableNotification: newReminder.value.enableNotification,
+        enableSound: newReminder.value.enableSound,
+        enableVibration: newReminder.value.enableVibration
+      }
+    )
+    
+    // Cancelar notificações antigas e agendar novas se ativado
+    await agendaStore.cancelNotificationForItem(editingReminder.value.id)
+    if (newReminder.value.enableNotification) {
+      const reminder = agendaStore.getReminderById(editingReminder.value.id)
+      if (reminder) {
+        await agendaStore.scheduleNotificationForReminder(reminder)
+      }
+    }
+    
+    showNotificationMessage('Lembrete atualizado com sucesso!', 'success')
+    resetReminderForm()
+    showReminderForm.value = false
+  } catch (error) {
+    showNotificationMessage('Erro ao atualizar lembrete', 'error')
+  }
+}
+
+const createAppointment = async () => {
+  try {
+    const appointment = await agendaStore.createAppointment({
       title: newAppointment.value.title,
       starts_at: newAppointment.value.starts_at,
       ends_at: newAppointment.value.ends_at || undefined,
-      location: newAppointment.value.location || undefined,
-      notes: newAppointment.value.notes || undefined,
+      location: newAppointment.value.location,
+      notes: newAppointment.value.notes,
       enableNotification: newAppointment.value.enableNotification,
       enableSound: newAppointment.value.enableSound,
       enableVibration: newAppointment.value.enableVibration
     })
     
-    cancelAppointmentForm()
+    showNotificationMessage('Compromisso criado com sucesso!', 'success')
+    resetAppointmentForm()
+    showAppointmentForm.value = false
   } catch (error) {
-    console.error('Error creating appointment:', error)
+    showNotificationMessage('Erro ao criar compromisso', 'error')
   }
 }
 
-async function updateExistingAppointment() {
+const updateExistingAppointment = async () => {
+  if (!editingAppointment.value) return
+  
   try {
-    await agendaStore.updateAppointment(editingAppointment.value, {
-      title: newAppointment.value.title,
-      starts_at: newAppointment.value.starts_at,
-      ends_at: newAppointment.value.ends_at || undefined,
-      location: newAppointment.value.location || undefined,
-      notes: newAppointment.value.notes || undefined
+    await agendaStore.updateAppointmentWithNotificationSettings(
+      editingAppointment.value.id,
+      {
+        title: newAppointment.value.title,
+        starts_at: newAppointment.value.starts_at,
+        ends_at: newAppointment.value.ends_at || null,
+        location: newAppointment.value.location,
+        notes: newAppointment.value.notes
+      },
+      {
+        enableNotification: newAppointment.value.enableNotification,
+        enableSound: newAppointment.value.enableSound,
+        enableVibration: newAppointment.value.enableVibration
+      }
+    )
+    
+    // Cancelar notificações antigas e agendar novas se ativado
+    await agendaStore.cancelNotificationForItem(editingAppointment.value.id)
+    if (newAppointment.value.enableNotification) {
+      const appointment = agendaStore.getAppointmentById(editingAppointment.value.id)
+      if (appointment) {
+        await agendaStore.scheduleNotificationForAppointment(appointment)
+      }
+    }
+    
+    showNotificationMessage('Compromisso atualizado com sucesso!', 'success')
+    resetAppointmentForm()
+    showAppointmentForm.value = false
+  } catch (error) {
+    showNotificationMessage('Erro ao atualizar compromisso', 'error')
+  }
+}
+
+const cancelReminderForm = () => {
+  resetReminderForm()
+  showReminderForm.value = false
+}
+
+const cancelAppointmentForm = () => {
+  resetAppointmentForm()
+  showAppointmentForm.value = false
+}
+
+const deleteReminder = (id: string) => {
+  itemToDelete.value = { type: 'reminder', id }
+  confirmMessage.value = 'Tem certeza que deseja excluir este lembrete?'
+  showConfirmModal.value = true
+}
+
+const deleteAppointment = (id: string) => {
+  itemToDelete.value = { type: 'appointment', id }
+  confirmMessage.value = 'Tem certeza que deseja excluir este compromisso?'
+  showConfirmModal.value = true
+}
+
+const confirmDelete = async () => {
+  if (!itemToDelete.value) return
+  
+  try {
+    if (itemToDelete.value.type === 'reminder') {
+      await agendaStore.deleteReminder(itemToDelete.value.id)
+    } else {
+      await agendaStore.deleteAppointment(itemToDelete.value.id)
+    }
+    
+    // Cancelar notificações do item excluído
+    await agendaStore.cancelNotificationForItem(itemToDelete.value.id)
+    
+    showNotificationMessage('Item excluído com sucesso!', 'success')
+  } catch (error) {
+    showNotificationMessage('Erro ao excluir item', 'error')
+  } finally {
+    closeConfirmModal()
+  }
+}
+
+const toggleReminderDone = async (reminder: any) => {
+  try {
+    await agendaStore.updateReminder(reminder.id, {
+      done: !reminder.done
     })
     
-    cancelAppointmentForm()
+    // Se marcado como concluído, cancelar notificações
+    if (!reminder.done) {
+      await agendaStore.cancelNotificationForItem(reminder.id)
+    }
+    
+    showNotificationMessage(`Lembrete ${reminder.done ? 'desmarcado' : 'concluído'}!`, 'success')
   } catch (error) {
-    console.error('Error updating appointment:', error)
+    showNotificationMessage('Erro ao atualizar lembrete', 'error')
   }
 }
 
-function editAppointment(appointment) {
-  openAppointmentForm(appointment)
-  // Rolar para o formulário após um pequeno delay para garantir que ele foi renderizado
-  setTimeout(() => {
-    const formElement = document.getElementById('edit-appointment-form')
-    if (formElement) {
-      formElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+const toggleAppointmentDone = async (appointment: any) => {
+  try {
+    await agendaStore.updateAppointment(appointment.id, {
+      done: !appointment.done
+    })
+    
+    // Se marcado como concluído, cancelar notificações
+    if (!appointment.done) {
+      await agendaStore.cancelNotificationForItem(appointment.id)
     }
-  }, 100)
+    
+    showNotificationMessage(`Compromisso ${appointment.done ? 'desmarcado' : 'concluído'}!`, 'success')
+  } catch (error) {
+    showNotificationMessage('Erro ao atualizar compromisso', 'error')
+  }
 }
 
-function viewAppointmentDetails(appointment) {
+const viewReminderDetails = (reminder: any) => {
+  viewModalData.value = {
+    ...reminder,
+    type: 'reminder'
+  }
+  showViewModal.value = true
+}
+
+const viewAppointmentDetails = (appointment: any) => {
   viewModalData.value = {
     ...appointment,
     type: 'appointment'
@@ -744,119 +780,82 @@ function viewAppointmentDetails(appointment) {
   showViewModal.value = true
 }
 
-async function toggleAppointmentDone(appointment) {
-  try {
-    await agendaStore.updateAppointment(appointment.id, {
-      done: !appointment.done
-    })
-  } catch (error) {
-    console.error('Error updating appointment:', error)
-  }
-}
-
-async function deleteAppointment(id) {
-  itemToDelete.value = { id, type: 'appointment' }
-  confirmMessage.value = 'Tem certeza que deseja excluir este compromisso?'
-  showConfirmModal.value = true
-}
-
-// Funções dos modais
-function closeViewModal() {
+const closeViewModal = () => {
   showViewModal.value = false
-  viewModalData.value = {}
+  viewModalData.value = null
 }
 
-function closeConfirmModal() {
+const closeConfirmModal = () => {
   showConfirmModal.value = false
-  itemToDelete.value = { id: null, type: null }
   confirmMessage.value = ''
+  itemToDelete.value = null
 }
 
-async function confirmDelete() {
-  const { id, type } = itemToDelete.value
+const navigateToHistory = () => {
+  router.push('/history')
+}
+
+const formatDateTime = (dateTime: string) => {
+  const date = new Date(dateTime)
+  return date.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const isPastDate = (dateTime: string) => {
+  return new Date(dateTime) < new Date()
+}
+
+const showNotificationMessage = (message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') => {
+  notificationMessage.value = message
+  notificationType.value = type
+  showNotification.value = true
   
-  try {
-    if (type === 'reminder') {
-      await agendaStore.deleteReminder(id)
-    } else if (type === 'appointment') {
-      await agendaStore.deleteAppointment(id)
+  setTimeout(() => {
+    showNotification.value = false
+  }, 5000)
+}
+
+const runDebugTests = () => {
+  console.log('🧪 Executando testes de debug...')
+  // Importar e executar testes de debug
+  import('~/utils/debug-navigation.js').then(module => {
+    if (module.runDebugTests) {
+      module.runDebugTests()
     }
+  })
+}
+
+const runNotificationTests = async () => {
+  console.log('🔔 Executando testes de notificações...')
+  try {
+    await agendaStore.testNotification()
+    showNotificationMessage('Teste de notificação executado!', 'success')
   } catch (error) {
-    console.error('Error deleting item:', error)
-  } finally {
-    closeConfirmModal()
+    showNotificationMessage('Erro ao testar notificações', 'error')
   }
 }
 
-// Função para navegar para a página de histórico
-function navigateToHistory() {
-  console.log('📋 Navegando para a página de histórico...')
+// Inicializar
+onMounted(async () => {
+  await agendaStore.initialize()
   
-  try {
-    // Usar o router do Nuxt para navegar
-    router.push('/history')
-    
-    // Mostrar notificação de sucesso
-    showNotificationMessage('Redirecionando para a página de histórico...', 'info')
-  } catch (error) {
-    console.error('❌ Erro ao navegar para histórico:', error)
-    showNotificationMessage('Erro ao acessar histórico. Tente novamente.', 'error')
-    
-    // Fallback: tentar navegação direta
-    setTimeout(() => {
-      window.location.href = '/history'
-    }, 1000)
-  }
-}
-
-// Funções de debug
-async function runDebugTests() {
-  console.log('🧪 INICIANDO TESTES DE DEBUG')
-  
-  try {
-    // Carregar módulo de debug
-    const { NavigationDebug } = await import('~/utils/debug-navigation.js')
-    
-    // Executar testes
-    await NavigationDebug.testNavigation()
-    
-    // Mostrar notificação
-    showNotificationMessage('Testes de debug executados. Verifique o console.', 'success')
-  } catch (error) {
-    console.error('❌ Erro ao executar testes de debug:', error)
-    showNotificationMessage('Erro ao executar testes de debug. Verifique o console.', 'error')
-  }
-}
-
-// Função para testar notificações
-async function runNotificationTests() {
-  console.log('🔔 INICIANDO TESTES DE NOTIFICAÇÕES')
-  
-  try {
-    // Carregar módulo de teste de notificações
-    const { NotificationTester } = await import('~/utils/test-notifications.js')
-    
-    // Executar testes
-    const results = await NotificationTester.runAllTests()
-    
-    // Mostrar notificação com resultado
-    if (Object.values(results).filter(v => v === true || (typeof v === 'number' && v >= 0)).length === Object.keys(results).length) {
-      showNotificationMessage('✅ Todos os testes de notificações passaram!', 'success')
-    } else {
-      showNotificationMessage('⚠️ Alguns testes de notificações falharam. Verifique o console.', 'warning')
-    }
-  } catch (error) {
-    console.error('❌ Erro ao executar testes de notificações:', error)
-    showNotificationMessage('Erro ao executar testes de notificações. Verifique o console.', 'error')
-  }
-}
+  // Agendar notificações para itens existentes
+  setTimeout(() => {
+    agendaStore.scheduleAllNotifications()
+  }, 2000)
+})
 </script>
 
 <style scoped>
 .container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 20px;
 }
 
 .card {
@@ -868,13 +867,13 @@ async function runNotificationTests() {
 }
 
 header.card {
-  background: linear-gradient(135deg, #1976d2, #2196f3);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
 }
 
 h1 {
-  margin: 0 0 8px 0;
-  font-size: 28px;
+  margin: 0 0 10px 0;
+  font-size: 2.5rem;
 }
 
 .subtitle {
@@ -884,524 +883,105 @@ h1 {
 
 .stats {
   display: flex;
-  justify-content: space-around;
+  gap: 20px;
   margin-top: 20px;
 }
 
 .stat {
   text-align: center;
+  flex: 1;
 }
 
 .stat-number {
   display: block;
-  font-size: 32px;
+  font-size: 2rem;
   font-weight: bold;
 }
 
 .stat-label {
-  font-size: 14px;
-  opacity: 0.9;
+  font-size: 0.9rem;
+  opacity: 0.8;
 }
 
 .actions {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
   margin-bottom: 20px;
 }
 
 .actions-row {
   display: flex;
-  gap: 12px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .btn {
-  background: #1976d2;
+  background: #667eea;
   color: white;
   border: none;
   padding: 12px 20px;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.2s;
   flex: 1;
-  transition: background 0.3s;
-}
-
-.btn-full {
-  width: 100%;
-}
-
-.btn-icon {
-  padding: 8px;
-  min-width: 40px;
-}
-
-.btn-icon .btn-text {
-  display: inline;
+  min-width: 120px;
 }
 
 .btn:hover {
-  background: #1565c0;
-}
-
-.btn-danger {
-  background: #f44336;
-}
-
-.btn-danger:hover {
-  background: #d32f2f;
-}
-
-.btn-view {
-  background: #4caf50;
-}
-
-.btn-view:hover {
-  background: #388e3c;
+  background: #5a67d8;
+  transform: translateY(-2px);
 }
 
 .btn-debug {
-  background: #9c27b0;
+  background: #718096;
+  margin-top: 10px;
 }
 
 .btn-debug:hover {
-  background: #7b1fa2;
+  background: #4a5568;
 }
 
-.filters {
-  margin-bottom: 20px;
-}
-
-.filter-options {
-  display: flex;
-  gap: 20px;
-  margin-top: 12px;
-}
-
-.filter-option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.form-group {
-  margin-bottom: 16px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 6px;
-  font-weight: 500;
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 16px;
-}
-
-.form-group textarea {
-  min-height: 80px;
-  resize: vertical;
-}
-
-.form-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 20px;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.section-count {
-  background: #e3f2fd;
-  color: #1976d2;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 14px;
-}
-
-.empty-message {
-  text-align: center;
-  color: #666;
-  padding: 40px 0;
-}
-
-.item {
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 12px;
-  transition: all 0.3s;
-}
-
-.item.past-date {
-  border-left: 4px solid #ff9800;
-  background: #fff3e0;
-}
-
-.item.done-item {
-  opacity: 0.7;
-  background: #f5f5f5;
-}
-
-.item-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 8px;
-}
-
-.item-header h3 {
-  margin: 0;
-  font-size: 18px;
-}
-
-.item-header-right {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.priority-badge {
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.priority-high {
-  background: #ffebee;
-  color: #c62828;
-}
-
-.priority-medium {
-  background: #fff3e0;
-  color: #ef6c00;
-}
-
-.priority-low {
-  background: #e8f5e9;
-  color: #2e7d32;
-}
-
-.done-badge {
-  background: #4caf50;
-  color: white;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-}
-
-.past-badge {
-  background: #ff9800;
-  color: white;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-}
-
-.location {
-  color: #666;
-  font-size: 14px;
-}
-
-.item-time {
-  color: #666;
-  margin: 8px 0;
-  font-size: 14px;
-}
-
-.item-notes {
-  color: #555;
-  margin: 8px 0;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.item-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-  flex-wrap: wrap;
-}
-
-.item-actions .btn {
-  flex: none;
+.btn-icon {
   padding: 8px 12px;
-  font-size: 14px;
+  font-size: 0.9rem;
+  min-width: auto;
+  flex: none;
 }
 
-.error {
-  background: #ffebee;
-  border: 1px solid #f44336;
-  color: #c62828;
+.btn-text {
+  margin-left: 5px;
 }
 
-/* Estilos dos Modais */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 16px;
+.btn-view {
+  background: #4299e1;
 }
 
-.modal-content {
-  background: white;
-  border-radius: 12px;
-  max-width: 500px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+.btn-view:hover {
+  background: #3182ce;
 }
 
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #e0e0e0;
+.btn-danger {
+  background: #f56565;
 }
 
-.modal-header h2 {
-  margin: 0;
-  font-size: 20px;
+.btn-danger:hover {
+  background: #e53e3e;
 }
 
-.modal-close {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #666;
-  padding: 0;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-}
-
-.modal-close:hover {
-  background: #f5f5f5;
-}
-
-.modal-body {
-  padding: 20px;
-}
-
-.modal-field {
-  margin-bottom: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.modal-field strong {
-  color: #666;
-  font-size: 14px;
-}
-
-.modal-field span {
-  font-size: 16px;
-}
-
-.modal-notes {
-  background: #f9f9f9;
-  padding: 12px;
-  border-radius: 6px;
-  margin-top: 8px;
-  white-space: pre-wrap;
-}
-
-.modal-footer {
-  padding: 20px;
-  border-top: 1px solid #e0e0e0;
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-}
-
-@media (max-width: 600px) {
-  .stats {
-    flex-direction: row;
-    gap: 8px;
-  }
-  
-  .stat {
-    flex: 1;
-  }
-  
-  .stat-number {
-    font-size: 24px;
-  }
-  
-  .stat-label {
-    font-size: 12px;
-  }
-  
-  .actions-row {
-    flex-direction: row;
-  }
-  
-  .btn {
-    padding: 10px 12px;
-    font-size: 14px;
-  }
-  
-  .btn-icon {
-    padding: 6px;
-    min-width: 36px;
-  }
-  
-  .btn-icon .btn-text {
-    display: none;
-  }
-  
-  .filter-options {
-    flex-direction: column;
-    gap: 12px;
-  }
-  
-  .item-actions {
-    flex-direction: row;
-    justify-content: space-between;
-  }
-  
-  .item-actions .btn {
-    width: auto;
-    flex: 1;
-    margin: 2px;
-  }
-  
-  .item-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .item-header-right {
-    margin-top: 8px;
-    flex-wrap: wrap;
-  }
-  
-  .modal-content {
-    max-width: 100%;
-    margin: 0;
-  }
-  
-  .modal-header {
-    padding: 16px;
-  }
-  
-  .modal-body {
-    padding: 16px;
-  }
-  
-  .modal-footer {
-    padding: 16px;
-    flex-direction: column;
-  }
-  
-  .modal-footer .btn {
-    width: 100%;
-  }
-}
-
-/* Estilos da Notificação Toast */
 .notification-toast {
   position: fixed;
   top: 20px;
   right: 20px;
-  z-index: 2000;
-  max-width: 400px;
-  min-width: 300px;
   background: white;
   border-radius: 8px;
+  padding: 15px 20px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
-  animation: slideIn 0.3s ease-out;
-  border-left: 4px solid #1976d2;
-}
-
-.notification-info {
-  border-left-color: #1976d2;
-  background: #e3f2fd;
-}
-
-.notification-success {
-  border-left-color: #4caf50;
-  background: #e8f5e9;
-}
-
-.notification-warning {
-  border-left-color: #ff9800;
-  background: #fff3e0;
-}
-
-.notification-error {
-  border-left-color: #f44336;
-  background: #ffebee;
-}
-
-.notification-content {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-}
-
-.notification-icon {
-  font-size: 20px;
-  flex-shrink: 0;
-}
-
-.notification-message {
-  font-size: 14px;
-  line-height: 1.4;
-  color: #333;
-}
-
-.notification-close {
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-  color: #666;
-  padding: 0;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  flex-shrink: 0;
-  margin-left: 8px;
-}
-
-.notification-close:hover {
-  background: rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  max-width: 400px;
+  animation: slideIn 0.3s ease;
 }
 
 @keyframes slideIn {
@@ -1415,33 +995,305 @@ h1 {
   }
 }
 
-@media (max-width: 600px) {
-  .notification-toast {
-    top: 10px;
-    right: 10px;
-    left: 10px;
-    max-width: none;
-    min-width: auto;
-  }
+.notification-info {
+  border-left: 4px solid #4299e1;
 }
 
-/* Estilos para checkboxes */
+.notification-success {
+  border-left: 4px solid #48bb78;
+}
+
+.notification-warning {
+  border-left: 4px solid #ed8936;
+}
+
+.notification-error {
+  border-left: 4px solid #f56565;
+}
+
+.notification-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.notification-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #718096;
+  padding: 0 0 0 10px;
+}
+
+.filters {
+  margin-bottom: 20px;
+}
+
+.filter-options {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.filter-option {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.filter-option input {
+  margin: 0;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.section-count {
+  background: #e2e8f0;
+  color: #4a5568;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+}
+
+.item {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  transition: all 0.2s;
+}
+
+.item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.item-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #2d3748;
+}
+
+.item-header-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.priority-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.priority-low {
+  background: #c6f6d5;
+  color: #22543d;
+}
+
+.priority-medium {
+  background: #fed7d7;
+  color: #742a2a;
+}
+
+.priority-high {
+  background: #fed7d7;
+  color: #742a2a;
+}
+
+.done-badge {
+  background: #c6f6d5;
+  color: #22543d;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+}
+
+.past-badge {
+  background: #fed7d7;
+  color: #742a2a;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+}
+
+.location {
+  background: #bee3f8;
+  color: #2c5282;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+}
+
+.item-time {
+  margin: 5px 0;
+  color: #718096;
+  font-size: 0.9rem;
+}
+
+.item-notes {
+  margin: 10px 0;
+  color: #4a5568;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.item-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 15px;
+  flex-wrap: wrap;
+}
+
+.empty-message {
+  text-align: center;
+  color: #718096;
+  padding: 20px;
+}
+
+.past-date {
+  opacity: 0.7;
+  border-color: #fed7d7;
+}
+
+.done-item {
+  opacity: 0.6;
+  border-color: #c6f6d5;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.modal-header h2 {
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #718096;
+}
+
+.modal-body {
+  margin-bottom: 20px;
+}
+
+.modal-field {
+  margin-bottom: 15px;
+}
+
+.modal-field strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #4a5568;
+}
+
+.modal-notes {
+  margin: 10px 0;
+  padding: 10px;
+  background: #f7fafc;
+  border-radius: 6px;
+  border-left: 3px solid #4299e1;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #4a5568;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.form-group textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
 .checkbox-label {
   display: flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  padding: 8px 0;
 }
 
-.checkbox-label input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
+.checkbox-label input {
+  width: auto;
+  margin: 0;
 }
 
-.checkbox-label span {
-  font-size: 14px;
-  color: #333;
+.form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.error {
+  background: #fed7d7;
+  border-color: #fc8181;
+  color: #742a2a;
 }
 </style>
