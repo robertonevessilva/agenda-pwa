@@ -14,12 +14,27 @@ const agendaStore = useAgendaStore()
 const notifications = useNotifications()
 
 onMounted(async () => {
-  await agendaStore.initialize()
+  // Inicializar notificações primeiro
+  console.log('🔔 Inicializando sistema de notificações...')
   
-  // Agendar notificações para todos os itens pendentes
+  // Aguardar um pouco para garantir que o DOM está pronto
   setTimeout(async () => {
-    await agendaStore.scheduleAllNotifications()
-  }, 2000) // Aguardar 2 segundos para garantir que os dados foram carregados
+    await agendaStore.initialize()
+    
+    // Agendar notificações para todos os itens pendentes
+    setTimeout(async () => {
+      console.log('📅 Agendando notificações para itens pendentes...')
+      await agendaStore.scheduleAllNotifications()
+      
+      // Testar notificação (apenas em desenvolvimento)
+      if (process.env.NODE_ENV === 'development') {
+        setTimeout(async () => {
+          console.log('🧪 Testando notificação...')
+          await notifications.testNotification()
+        }, 3000)
+      }
+    }, 1000)
+  }, 500)
 })
 </script>
 

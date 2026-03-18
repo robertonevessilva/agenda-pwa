@@ -37,6 +37,11 @@
       <button v-if="isDevelopment" class="btn btn-debug" @click="runDebugTests()">
         🐛 Debug Navegação
       </button>
+      
+      <!-- Botão de teste de notificações -->
+      <button v-if="isDevelopment" class="btn btn-debug" @click="runNotificationTests()">
+        🔔 Testar Notificações
+      </button>
     </div>
 
     <!-- Notificação Toast -->
@@ -823,6 +828,28 @@ async function runDebugTests() {
   }
 }
 
+// Função para testar notificações
+async function runNotificationTests() {
+  console.log('🔔 INICIANDO TESTES DE NOTIFICAÇÕES')
+  
+  try {
+    // Carregar módulo de teste de notificações
+    const { NotificationTester } = await import('~/utils/test-notifications.js')
+    
+    // Executar testes
+    const results = await NotificationTester.runAllTests()
+    
+    // Mostrar notificação com resultado
+    if (Object.values(results).filter(v => v === true || (typeof v === 'number' && v >= 0)).length === Object.keys(results).length) {
+      showNotificationMessage('✅ Todos os testes de notificações passaram!', 'success')
+    } else {
+      showNotificationMessage('⚠️ Alguns testes de notificações falharam. Verifique o console.', 'warning')
+    }
+  } catch (error) {
+    console.error('❌ Erro ao executar testes de notificações:', error)
+    showNotificationMessage('Erro ao executar testes de notificações. Verifique o console.', 'error')
+  }
+}
 </script>
 
 <style scoped>

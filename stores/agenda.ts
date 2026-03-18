@@ -312,14 +312,12 @@ export const useAgendaStore = defineStore('agenda', {
         const notifications = useNotifications()
         const scheduledTime = new Date(reminder.remind_at)
         
-        // Agendar notificação 5 minutos antes (opcional)
-        const notificationTime = new Date(scheduledTime.getTime() - 5 * 60 * 1000)
-        
+        // Agendar notificação no horário exato (não antes)
         return notifications.scheduleNotification(
           'reminder',
           reminder.id,
           reminder.title,
-          notificationTime
+          scheduledTime
         )
       } catch (error) {
         console.error('Failed to schedule notification for reminder:', error)
@@ -332,14 +330,12 @@ export const useAgendaStore = defineStore('agenda', {
         const notifications = useNotifications()
         const scheduledTime = new Date(appointment.starts_at)
         
-        // Agendar notificação 10 minutos antes (opcional)
-        const notificationTime = new Date(scheduledTime.getTime() - 10 * 60 * 1000)
-        
+        // Agendar notificação no horário exato (não antes)
         return notifications.scheduleNotification(
           'appointment',
           appointment.id,
           appointment.title,
-          notificationTime
+          scheduledTime
         )
       } catch (error) {
         console.error('Failed to schedule notification for appointment:', error)

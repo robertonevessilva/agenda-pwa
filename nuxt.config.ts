@@ -124,7 +124,7 @@ export default defineNuxtConfig({
       cacheId: 'agenda-pwa-v1', // ID único para este app
       
       // Importar scripts de atualização customizados
-      importScripts: ['/sw-update-handler.js']
+      importScripts: ['/sw-update-handler.js', '/notification-handler.js']
     },
     
     // Configurações do cliente PWA com notificação de atualização
