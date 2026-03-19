@@ -49,7 +49,7 @@ export const useNotifications = () => {
     return supported
   }
 
-  // Registrar Service Worker
+  // Registrar Service Worker com fallback robusto
   const registerServiceWorker = async (): Promise<boolean> => {
     if (!isSupported.value || typeof navigator === 'undefined') {
       console.warn('Service Worker not supported')
@@ -57,30 +57,74 @@ export const useNotifications = () => {
     }
 
     try {
-      const registration = await navigator.serviceWorker.register('/sw.js', {
-        scope: '/',
-        updateViaCache: 'none'
-      })
+      // Tentar registrar o Service Worker do Workbox
+      let registration: ServiceWorkerRegistration | null = null
+      
+      // Primeira tentativa: usar o Service Worker gerado pelo Workbox
+      try {
+        registration = await navigator.serviceWorker.register('/sw.js', {
+          scope: '/',
+          updateViaCache: 'none'
+        })
+        console.log('✅ Service Worker registrado com sucesso:', registration)
+      } catch (swError) {
+        console.warn('⚠️ Falha ao registrar /sw.js, tentando fallback...', swError)
+        
+        // Segunda tentativa: tentar registrar sem opções específicas
+        try {
+          registration = await navigator.serviceWorker.register('/sw.js')
+          console.log('✅ Service Worker registrado com fallback:', registration)
+        } catch (fallbackError) {
+          console.error('❌ Falha no fallback do Service Worker:', fallbackError)
+          return false
+        }
+      }
+      
+      if (!registration) {
+        console.error('❌ Service Worker registration é null')
+        return false
+      }
       
       serviceWorkerRegistration.value = registration
-      console.log('Service Worker registered:', registration)
       
-      // Aguardar o Service Worker estar ativo
-      if (registration.active) {
-        console.log('Service Worker already active')
-      } else if (registration.installing) {
-        await new Promise<void>((resolve) => {
-          registration.installing!.addEventListener('statechange', () => {
-            if (registration.installing!.state === 'activated') {
-              resolve()
-            }
-          })
+      // Aguardar o Service Worker estar ativo com timeout
+      const waitForActivation = new Promise<boolean>((resolve) => {
+        if (registration!.active) {
+          console.log('✅ Service Worker já está ativo')
+          resolve(true)
+          return
+        }
+        
+        const worker = registration!.installing || registration!.waiting
+        if (!worker) {
+          console.warn('⚠️ Nenhum worker encontrado (installing ou waiting)')
+          resolve(false)
+          return
+        }
+        
+        const timeoutId = setTimeout(() => {
+          console.warn('⚠️ Timeout aguardando ativação do Service Worker')
+          resolve(false)
+        }, 10000) // 10 segundos timeout
+        
+        worker.addEventListener('statechange', () => {
+          console.log(`🔄 Estado do Service Worker: ${worker.state}`)
+          if (worker.state === 'activated') {
+            clearTimeout(timeoutId)
+            console.log('✅ Service Worker ativado')
+            resolve(true)
+          }
         })
+      })
+      
+      const activated = await waitForActivation
+      if (!activated) {
+        console.warn('⚠️ Service Worker não foi ativado dentro do timeout')
       }
       
       return true
     } catch (error) {
-      console.error('Error registering Service Worker:', error)
+      console.error('❌ Erro crítico ao registrar Service Worker:', error)
       return false
     }
   }
