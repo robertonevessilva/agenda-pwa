@@ -833,9 +833,11 @@ const runDebugTests = () => {
 const runNotificationTests = async () => {
   console.log('🔔 Executando testes de notificações...')
   try {
+    // Testar notificação usando o método do agendaStore
     await agendaStore.testNotification()
     showNotificationMessage('Teste de notificação executado!', 'success')
   } catch (error) {
+    console.error('❌ Erro ao executar testes de notificações:', error)
     showNotificationMessage('Erro ao testar notificações', 'error')
   }
 }
