@@ -87,23 +87,48 @@ export const useNotifications = () => {
 
   // Enviar mensagem para o Service Worker
   const sendMessageToServiceWorker = async (type: string, data: any): Promise<any> => {
-    if (!serviceWorkerRegistration.value?.active) {
-      console.warn('Service Worker not active')
-      return { success: false, error: 'Service Worker not active' }
-    }
-
-    return new Promise((resolve) => {
-      const messageChannel = new MessageChannel()
-      
-      messageChannel.port1.onmessage = (event) => {
-        resolve(event.data)
+    try {
+      // Verificar se o Service Worker está registrado e ativo
+      if (!serviceWorkerRegistration.value) {
+        console.warn('Service Worker not registered')
+        return { success: false, error: 'Service Worker not registered' }
       }
+
+      // Aguardar o Service Worker estar pronto
+      const registration = await navigator.serviceWorker.ready
       
-      serviceWorkerRegistration.value!.active!.postMessage(
-        { type, ...data },
-        [messageChannel.port2]
-      )
-    })
+      if (!registration.active) {
+        console.warn('Service Worker not active')
+        return { success: false, error: 'Service Worker not active' }
+      }
+
+      return new Promise((resolve) => {
+        const messageChannel = new MessageChannel()
+        
+        messageChannel.port1.onmessage = (event) => {
+          resolve(event.data)
+        }
+        
+        // Configurar timeout para evitar espera infinita
+        const timeoutId = setTimeout(() => {
+          resolve({ success: false, error: 'Service Worker timeout' })
+        }, 5000)
+        
+        registration.active!.postMessage(
+          { type, ...data },
+          [messageChannel.port2]
+        )
+        
+        // Limpar timeout quando receber resposta
+        messageChannel.port1.onmessage = (event) => {
+          clearTimeout(timeoutId)
+          resolve(event.data)
+        }
+      })
+    } catch (error) {
+      console.error('Error sending message to Service Worker:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
   }
 
   // Solicitar permissão para notificações
