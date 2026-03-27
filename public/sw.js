@@ -458,4 +458,92 @@ if ('periodicSync' in self.registration) {
   });
 }
 
+// Evento: Push notification
+self.addEventListener('push', (event) => {
+  console.log('📨 Evento push recebido:', event);
+  
+  if (!event.data) {
+    console.warn('⚠️ Push event sem dados');
+    return;
+  }
+  
+  try {
+    const data = event.data.json();
+    console.log('📊 Dados da push notification:', data);
+    
+    const options = {
+      body: data.body || 'Nova notificação da Agenda',
+      icon: data.icon || '/icon-192.png',
+      badge: '/icon-192.png',
+      vibrate: data.vibrate || [200, 100, 200],
+      tag: data.tag || 'agenda-push',
+      requireInteraction: data.requireInteraction || true,
+      data: {
+        url: data.url || '/',
+        type: data.type || 'push',
+        itemId: data.itemId || null
+      },
+      actions: [
+        {
+          action: 'open',
+          title: 'Abrir Agenda'
+        },
+        {
+          action: 'dismiss',
+          title: 'Fechar'
+        }
+      ]
+    };
+    
+    event.waitUntil(
+      self.registration.showNotification(data.title || '🔔 Agenda', options)
+        .then(() => {
+          console.log('✅ Push notification mostrada com sucesso');
+        })
+        .catch(error => {
+          console.error('❌ Erro ao mostrar push notification:', error);
+        })
+    );
+  } catch (error) {
+    console.error('❌ Erro ao processar push event:', error);
+    
+    // Fallback: mostrar notificação simples
+    const fallbackOptions = {
+      body: 'Nova notificação da Agenda',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      vibrate: [200, 100, 200],
+      tag: 'agenda-push-fallback',
+      requireInteraction: true
+    };
+    
+    event.waitUntil(
+      self.registration.showNotification('🔔 Agenda', fallbackOptions)
+    );
+  }
+});
+
+// Evento: Push subscription change
+self.addEventListener('pushsubscriptionchange', (event) => {
+  console.log('🔄 Push subscription mudou:', event);
+  
+  event.waitUntil(
+    self.registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: event.oldSubscription ? 
+        event.oldSubscription.options.applicationServerKey : 
+        null
+    })
+    .then(newSubscription => {
+      console.log('✅ Nova inscrição push criada:', newSubscription);
+      
+      // Aqui você enviaria a nova inscrição para seu servidor
+      // Exemplo: fetch('/api/push/resubscribe', { method: 'POST', body: JSON.stringify(newSubscription) })
+    })
+    .catch(error => {
+      console.error('❌ Erro ao criar nova inscrição push:', error);
+    })
+  );
+});
+
 console.log('✅ Service Worker carregado e pronto');

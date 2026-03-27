@@ -42,6 +42,38 @@
       <button v-if="isDevelopment" class="btn btn-debug" @click="runNotificationTests()">
         🔔 Testar Notificações
       </button>
+      
+      <!-- Botão de ativar notificações push -->
+      <div class="push-notifications-section">
+        <h3>🔔 Notificações Push</h3>
+        <div v-if="pushNotifications.isSupported">
+          <div v-if="!pushNotifications.isSubscribed">
+            <button class="btn btn-push" @click="activatePushNotifications()">
+              📱 Ativar Notificações Push
+            </button>
+            <p class="push-description">
+              Receba notificações mesmo quando o app estiver fechado
+            </p>
+          </div>
+          <div v-else>
+            <div class="push-status">
+              <span class="push-status-icon">✅</span>
+              <span class="push-status-text">Notificações push ativadas</span>
+            </div>
+            <button class="btn btn-push btn-secondary" @click="testPushNotification()">
+              🧪 Testar Notificação Push
+            </button>
+            <button class="btn btn-push btn-danger" @click="deactivatePushNotifications()">
+              🚫 Desativar Notificações
+            </button>
+          </div>
+        </div>
+        <div v-else>
+          <p class="push-not-supported">
+            ⚠️ Notificações push não são suportadas neste navegador
+          </p>
+        </div>
+      </div>
     </div>
 
     <!-- Notificação Toast -->
@@ -353,16 +385,16 @@
           
           <div class="item-actions">
             <button class="btn btn-icon btn-view" @click="viewReminderDetails(reminder)" title="Visualizar">
-              👁️<span class="btn-text"> Visualizar</span>
+              👁️
             </button>
             <button class="btn btn-icon" @click="editReminder(reminder)" title="Alterar">
-              ✏️<span class="btn-text"> Alterar</span>
+              ✏️
             </button>
             <button class="btn btn-icon" @click="toggleReminderDone(reminder)" :title="reminder.done ? 'Desmarcar' : 'Concluir'">
-              {{ reminder.done ? '↩️' : '✓' }}<span class="btn-text"> {{ reminder.done ? 'Desmarcar' : 'Concluir' }}</span>
+              {{ reminder.done ? '↩️' : '✓' }}
             </button>
             <button class="btn btn-icon btn-danger" @click="deleteReminder(reminder.id)" title="Excluir">
-              🗑️<span class="btn-text"> Excluir</span>
+              🗑️
             </button>
           </div>
         </div>
@@ -409,16 +441,16 @@
           
           <div class="item-actions">
             <button class="btn btn-icon btn-view" @click="viewAppointmentDetails(appointment)" title="Visualizar">
-              👁️<span class="btn-text"> Visualizar</span>
+              👁️
             </button>
             <button class="btn btn-icon" @click="editAppointment(appointment)" title="Alterar">
-              ✏️<span class="btn-text"> Alterar</span>
+              ✏️
             </button>
             <button class="btn btn-icon" @click="toggleAppointmentDone(appointment)" :title="appointment.done ? 'Desmarcar' : 'Concluir'">
-              {{ appointment.done ? '↩️' : '✓' }}<span class="btn-text"> {{ appointment.done ? 'Desmarcar' : 'Concluir' }}</span>
+              {{ appointment.done ? '↩️' : '✓' }}
             </button>
             <button class="btn btn-icon btn-danger" @click="deleteAppointment(appointment.id)" title="Excluir">
-              🗑️<span class="btn-text"> Excluir</span>
+              🗑️
             </button>
           </div>
         </div>
@@ -432,10 +464,12 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAgendaStore } from '~/stores/agenda'
 import { useNotifications } from '~/composables/useNotifications'
+import { usePushNotifications } from '~/composables/usePushNotifications'
 
 const router = useRouter()
 const agendaStore = useAgendaStore()
 const notifications = useNotifications()
+const pushNotifications = usePushNotifications()
 
 // Estado do formulário
 const showReminderForm = ref(false)
@@ -839,6 +873,51 @@ const runNotificationTests = async () => {
   } catch (error) {
     console.error('❌ Erro ao executar testes de notificações:', error)
     showNotificationMessage('Erro ao testar notificações', 'error')
+  }
+}
+
+// Métodos para notificações push
+const activatePushNotifications = async () => {
+  try {
+    const subscription = await pushNotifications.subscribeToPush()
+    if (subscription) {
+      showNotificationMessage('Notificações push ativadas com sucesso!', 'success')
+      // Enviar inscrição para o servidor (se tiver backend)
+      await pushNotifications.sendSubscriptionToServer(subscription)
+    } else {
+      showNotificationMessage('Não foi possível ativar notificações push', 'warning')
+    }
+  } catch (error) {
+    console.error('❌ Erro ao ativar notificações push:', error)
+    showNotificationMessage('Erro ao ativar notificações push', 'error')
+  }
+}
+
+const testPushNotification = async () => {
+  try {
+    const success = await pushNotifications.testPushNotification()
+    if (success) {
+      showNotificationMessage('Notificação push de teste enviada!', 'success')
+    } else {
+      showNotificationMessage('Não foi possível enviar notificação de teste', 'warning')
+    }
+  } catch (error) {
+    console.error('❌ Erro ao testar notificação push:', error)
+    showNotificationMessage('Erro ao testar notificação push', 'error')
+  }
+}
+
+const deactivatePushNotifications = async () => {
+  try {
+    const success = await pushNotifications.unsubscribeFromPush()
+    if (success) {
+      showNotificationMessage('Notificações push desativadas com sucesso!', 'success')
+    } else {
+      showNotificationMessage('Não foi possível desativar notificações push', 'warning')
+    }
+  } catch (error) {
+    console.error('❌ Erro ao desativar notificações push:', error)
+    showNotificationMessage('Erro ao desativar notificações push', 'error')
   }
 }
 
@@ -1297,5 +1376,79 @@ h1 {
   background: #fed7d7;
   border-color: #fc8181;
   color: #742a2a;
+}
+
+/* Estilos para notificações push */
+.push-notifications-section {
+  margin-top: 20px;
+  padding: 15px;
+  background: #f7fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.push-notifications-section h3 {
+  margin: 0 0 15px 0;
+  color: #4a5568;
+  font-size: 1.1rem;
+}
+
+.btn-push {
+  background: #48bb78;
+  margin-top: 10px;
+}
+
+.btn-push:hover {
+  background: #38a169;
+}
+
+.btn-push.btn-secondary {
+  background: #4299e1;
+}
+
+.btn-push.btn-secondary:hover {
+  background: #3182ce;
+}
+
+.btn-push.btn-danger {
+  background: #f56565;
+}
+
+.btn-push.btn-danger:hover {
+  background: #e53e3e;
+}
+
+.push-description {
+  margin: 10px 0 0 0;
+  color: #718096;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.push-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 15px;
+  padding: 10px;
+  background: #c6f6d5;
+  border-radius: 6px;
+  color: #22543d;
+}
+
+.push-status-icon {
+  font-size: 1.2rem;
+}
+
+.push-status-text {
+  font-weight: 500;
+}
+
+.push-not-supported {
+  color: #ed8936;
+  padding: 10px;
+  background: #fed7d7;
+  border-radius: 6px;
+  text-align: center;
 }
 </style>

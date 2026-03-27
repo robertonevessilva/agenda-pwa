@@ -24,6 +24,8 @@ export default defineNuxtConfig({
       orientation: 'portrait',
       scope: '/',
       start_url: '/',
+      // Configuração para notificações push com VAPID
+      gcm_sender_id: '103953800507', // ID do Google Cloud Messaging
       icons: [
         {
           src: '/icon-192.png',

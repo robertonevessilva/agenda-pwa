@@ -69,13 +69,13 @@
       <div class="section-header">
         <div v-if="filteredLogs.length > 0" class="section-actions">
           <button class="btn btn-small" @click="refreshHistory" title="Atualizar histórico">
-            🔄 Atualizar
+            🔄
           </button>
           <button class="btn btn-small" @click="clearFilters">
             Limpar Filtros
           </button>
           <button class="btn btn-small btn-danger" @click="confirmDeleteAll" title="Excluir todos os registros">
-            🗑️ Excluir Todos
+            🗑️
           </button>
         </div>
       </div>
