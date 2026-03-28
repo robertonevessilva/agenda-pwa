@@ -43,37 +43,6 @@
         🔔 Testar Notificações
       </button>
       
-      <!-- Botão de ativar notificações push -->
-      <div class="push-notifications-section">
-        <h3>🔔 Notificações Push</h3>
-        <div v-if="pushNotifications.isSupported">
-          <div v-if="!pushNotifications.isSubscribed">
-            <button class="btn btn-push" @click="activatePushNotifications()">
-              📱 Ativar Notificações Push
-            </button>
-            <p class="push-description">
-              Receba notificações mesmo quando o app estiver fechado
-            </p>
-          </div>
-          <div v-else>
-            <div class="push-status">
-              <span class="push-status-icon">✅</span>
-              <span class="push-status-text">Notificações push ativadas</span>
-            </div>
-            <button class="btn btn-push btn-secondary" @click="testPushNotification()">
-              🧪 Testar Notificação Push
-            </button>
-            <button class="btn btn-push btn-danger" @click="deactivatePushNotifications()">
-              🚫 Desativar Notificações
-            </button>
-          </div>
-        </div>
-        <div v-else>
-          <p class="push-not-supported">
-            ⚠️ Notificações push não são suportadas neste navegador
-          </p>
-        </div>
-      </div>
     </div>
 
     <!-- Notificação Toast -->
@@ -478,12 +447,10 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAgendaStore } from '~/stores/agenda'
 import { useNotifications } from '~/composables/useNotifications'
-import { usePushNotifications } from '~/composables/usePushNotifications'
 
 const router = useRouter()
 const agendaStore = useAgendaStore()
 const notifications = useNotifications()
-const pushNotifications = usePushNotifications()
 
 // Estado do formulário
 const showReminderForm = ref(false)
@@ -890,50 +857,6 @@ const runNotificationTests = async () => {
   }
 }
 
-// Métodos para notificações push
-const activatePushNotifications = async () => {
-  try {
-    const subscription = await pushNotifications.subscribeToPush()
-    if (subscription) {
-      showNotificationMessage('Notificações push ativadas com sucesso!', 'success')
-      // Enviar inscrição para o servidor (se tiver backend)
-      await pushNotifications.sendSubscriptionToServer(subscription)
-    } else {
-      showNotificationMessage('Não foi possível ativar notificações push', 'warning')
-    }
-  } catch (error) {
-    console.error('❌ Erro ao ativar notificações push:', error)
-    showNotificationMessage('Erro ao ativar notificações push', 'error')
-  }
-}
-
-const testPushNotification = async () => {
-  try {
-    const success = await pushNotifications.testPushNotification()
-    if (success) {
-      showNotificationMessage('Notificação push de teste enviada!', 'success')
-    } else {
-      showNotificationMessage('Não foi possível enviar notificação de teste', 'warning')
-    }
-  } catch (error) {
-    console.error('❌ Erro ao testar notificação push:', error)
-    showNotificationMessage('Erro ao testar notificação push', 'error')
-  }
-}
-
-const deactivatePushNotifications = async () => {
-  try {
-    const success = await pushNotifications.unsubscribeFromPush()
-    if (success) {
-      showNotificationMessage('Notificações push desativadas com sucesso!', 'success')
-    } else {
-      showNotificationMessage('Não foi possível desativar notificações push', 'warning')
-    }
-  } catch (error) {
-    console.error('❌ Erro ao desativar notificações push:', error)
-    showNotificationMessage('Erro ao desativar notificações push', 'error')
-  }
-}
 
 // Inicializar
 onMounted(async () => {
