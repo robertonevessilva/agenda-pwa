@@ -117,164 +117,178 @@
       <p>Erro: {{ agendaStore.error }}</p>
     </div>
 
-    <!-- Formulário de Lembrete -->
-    <div v-if="showReminderForm" class="card" :id="editingReminder ? 'edit-reminder-form' : 'new-reminder-form'">
-      <h2>{{ editingReminder ? 'Alterar Lembrete' : 'Novo Lembrete' }}</h2>
-      <form @submit.prevent="editingReminder ? updateExistingReminder() : createReminder()">
-        <div class="form-group">
-          <label for="reminder-title">Título *</label>
-          <input
-            id="reminder-title"
-            v-model="newReminder.title"
-            type="text"
-            required
-            placeholder="Ex: Pagar conta de luz"
-          />
+    <!-- Modal de Formulário de Lembrete -->
+    <div v-if="showReminderForm" class="modal-overlay" @click="cancelReminderForm">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h2>{{ editingReminder ? 'Alterar Lembrete' : 'Novo Lembrete' }}</h2>
+          <button class="modal-close" @click="cancelReminderForm">×</button>
         </div>
-        
-        <div class="form-group">
-          <label for="reminder-date">Data e Hora *</label>
-          <input
-            id="reminder-date"
-            v-model="newReminder.remind_at"
-            type="datetime-local"
-            required
-          />
+        <div class="modal-body">
+          <form @submit.prevent="editingReminder ? updateExistingReminder() : createReminder()">
+            <div class="form-group">
+              <label for="reminder-title">Título *</label>
+              <input
+                id="reminder-title"
+                v-model="newReminder.title"
+                type="text"
+                required
+                placeholder="Ex: Pagar conta de luz"
+              />
+            </div>
+            
+            <div class="form-group">
+              <label for="reminder-date">Data e Hora *</label>
+              <input
+                id="reminder-date"
+                v-model="newReminder.remind_at"
+                type="datetime-local"
+                required
+              />
+            </div>
+            
+            <div class="form-group">
+              <label for="reminder-priority">Prioridade</label>
+              <select id="reminder-priority" v-model="newReminder.priority">
+                <option value="LOW">Baixa</option>
+                <option value="MEDIUM">Média</option>
+                <option value="HIGH">Alta</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="reminder-notes">Notas</label>
+              <textarea
+                id="reminder-notes"
+                v-model="newReminder.notes"
+                placeholder="Detalhes adicionais..."
+              />
+            </div>
+            
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" v-model="newReminder.enableNotification" />
+                <span>🔔 Ativar notificação no horário do lembrete</span>
+              </label>
+            </div>
+            
+            <div class="form-group" v-if="newReminder.enableNotification">
+              <label class="checkbox-label">
+                <input type="checkbox" v-model="newReminder.enableSound" />
+                <span>🔊 Ativar som de alarme</span>
+              </label>
+            </div>
+            
+            <div class="form-group" v-if="newReminder.enableNotification">
+              <label class="checkbox-label">
+                <input type="checkbox" v-model="newReminder.enableVibration" />
+                <span>📳 Ativar vibração (se suportado)</span>
+              </label>
+            </div>
+            
+            <div class="form-actions">
+              <button type="button" class="btn" @click="cancelReminderForm()">
+                Cancelar
+              </button>
+              <button type="submit" class="btn">
+                {{ editingReminder ? 'Atualizar' : 'Salvar' }} Lembrete
+              </button>
+            </div>
+          </form>
         </div>
-        
-        <div class="form-group">
-          <label for="reminder-priority">Prioridade</label>
-          <select id="reminder-priority" v-model="newReminder.priority">
-            <option value="LOW">Baixa</option>
-            <option value="MEDIUM">Média</option>
-            <option value="HIGH">Alta</option>
-          </select>
-        </div>
-        
-        <div class="form-group">
-          <label for="reminder-notes">Notas</label>
-          <textarea
-            id="reminder-notes"
-            v-model="newReminder.notes"
-            placeholder="Detalhes adicionais..."
-          />
-        </div>
-        
-        <div class="form-group">
-          <label class="checkbox-label">
-            <input type="checkbox" v-model="newReminder.enableNotification" />
-            <span>🔔 Ativar notificação no horário do lembrete</span>
-          </label>
-        </div>
-        
-        <div class="form-group" v-if="newReminder.enableNotification">
-          <label class="checkbox-label">
-            <input type="checkbox" v-model="newReminder.enableSound" />
-            <span>🔊 Ativar som de alarme</span>
-          </label>
-        </div>
-        
-        <div class="form-group" v-if="newReminder.enableNotification">
-          <label class="checkbox-label">
-            <input type="checkbox" v-model="newReminder.enableVibration" />
-            <span>📳 Ativar vibração (se suportado)</span>
-          </label>
-        </div>
-        
-        <div class="form-actions">
-          <button type="button" class="btn" @click="cancelReminderForm()">
-            Cancelar
-          </button>
-          <button type="submit" class="btn">
-            {{ editingReminder ? 'Atualizar' : 'Salvar' }} Lembrete
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
 
-    <!-- Formulário de Compromisso -->
-    <div v-if="showAppointmentForm" class="card" :id="editingAppointment ? 'edit-appointment-form' : 'new-appointment-form'">
-      <h2>{{ editingAppointment ? 'Alterar Compromisso' : 'Novo Compromisso' }}</h2>
-      <form @submit.prevent="editingAppointment ? updateExistingAppointment() : createAppointment()">
-        <div class="form-group">
-          <label for="appointment-title">Título *</label>
-          <input
-            id="appointment-title"
-            v-model="newAppointment.title"
-            type="text"
-            required
-            placeholder="Ex: Reunião com cliente"
-          />
+    <!-- Modal de Formulário de Compromisso -->
+    <div v-if="showAppointmentForm" class="modal-overlay" @click="cancelAppointmentForm">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h2>{{ editingAppointment ? 'Alterar Compromisso' : 'Novo Compromisso' }}</h2>
+          <button class="modal-close" @click="cancelAppointmentForm">×</button>
         </div>
-        
-        <div class="form-group">
-          <label for="appointment-start">Início *</label>
-          <input
-            id="appointment-start"
-            v-model="newAppointment.starts_at"
-            type="datetime-local"
-            required
-          />
+        <div class="modal-body">
+          <form @submit.prevent="editingAppointment ? updateExistingAppointment() : createAppointment()">
+            <div class="form-group">
+              <label for="appointment-title">Título *</label>
+              <input
+                id="appointment-title"
+                v-model="newAppointment.title"
+                type="text"
+                required
+                placeholder="Ex: Reunião com cliente"
+              />
+            </div>
+            
+            <div class="form-group">
+              <label for="appointment-start">Início *</label>
+              <input
+                id="appointment-start"
+                v-model="newAppointment.starts_at"
+                type="datetime-local"
+                required
+              />
+            </div>
+            
+            <div class="form-group">
+              <label for="appointment-end">Fim (opcional)</label>
+              <input
+                id="appointment-end"
+                v-model="newAppointment.ends_at"
+                type="datetime-local"
+              />
+            </div>
+            
+            <div class="form-group">
+              <label for="appointment-location">Local</label>
+              <input
+                id="appointment-location"
+                v-model="newAppointment.location"
+                type="text"
+                placeholder="Ex: Sala de reuniões"
+              />
+            </div>
+            
+            <div class="form-group">
+              <label for="appointment-notes">Notas</label>
+              <textarea
+                id="appointment-notes"
+                v-model="newAppointment.notes"
+                placeholder="Detalhes do compromisso..."
+              />
+            </div>
+            
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" v-model="newAppointment.enableNotification" />
+                <span>🔔 Ativar notificação no horário do compromisso</span>
+              </label>
+            </div>
+            
+            <div class="form-group" v-if="newAppointment.enableNotification">
+              <label class="checkbox-label">
+                <input type="checkbox" v-model="newAppointment.enableSound" />
+                <span>🔊 Ativar som de alarme</span>
+              </label>
+            </div>
+            
+            <div class="form-group" v-if="newAppointment.enableNotification">
+              <label class="checkbox-label">
+                <input type="checkbox" v-model="newAppointment.enableVibration" />
+                <span>📳 Ativar vibração (se suportado)</span>
+              </label>
+            </div>
+            
+            <div class="form-actions">
+              <button type="button" class="btn" @click="cancelAppointmentForm()">
+                Cancelar
+              </button>
+              <button type="submit" class="btn">
+                {{ editingAppointment ? 'Atualizar' : 'Salvar' }} Compromisso
+              </button>
+            </div>
+          </form>
         </div>
-        
-        <div class="form-group">
-          <label for="appointment-end">Fim (opcional)</label>
-          <input
-            id="appointment-end"
-            v-model="newAppointment.ends_at"
-            type="datetime-local"
-          />
-        </div>
-        
-        <div class="form-group">
-          <label for="appointment-location">Local</label>
-          <input
-            id="appointment-location"
-            v-model="newAppointment.location"
-            type="text"
-            placeholder="Ex: Sala de reuniões"
-          />
-        </div>
-        
-        <div class="form-group">
-          <label for="appointment-notes">Notas</label>
-          <textarea
-            id="appointment-notes"
-            v-model="newAppointment.notes"
-            placeholder="Detalhes do compromisso..."
-          />
-        </div>
-        
-        <div class="form-group">
-          <label class="checkbox-label">
-            <input type="checkbox" v-model="newAppointment.enableNotification" />
-            <span>🔔 Ativar notificação no horário do compromisso</span>
-          </label>
-        </div>
-        
-        <div class="form-group" v-if="newAppointment.enableNotification">
-          <label class="checkbox-label">
-            <input type="checkbox" v-model="newAppointment.enableSound" />
-            <span>🔊 Ativar som de alarme</span>
-          </label>
-        </div>
-        
-        <div class="form-group" v-if="newAppointment.enableNotification">
-          <label class="checkbox-label">
-            <input type="checkbox" v-model="newAppointment.enableVibration" />
-            <span>📳 Ativar vibração (se suportado)</span>
-          </label>
-        </div>
-        
-        <div class="form-actions">
-          <button type="button" class="btn" @click="cancelAppointmentForm()">
-            Cancelar
-          </button>
-          <button type="submit" class="btn">
-            {{ editingAppointment ? 'Atualizar' : 'Salvar' }} Compromisso
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
 
     <!-- Modal de Visualização -->
