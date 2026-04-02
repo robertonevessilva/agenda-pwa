@@ -33,15 +33,6 @@
         </button>
       </div>
       
-      <!-- Botão de debug (apenas em desenvolvimento) -->
-      <button v-if="isDevelopment" class="btn btn-debug" @click="runDebugTests()">
-        🐛 Debug Navegação
-      </button>
-      
-      <!-- Botão de teste de notificações -->
-      <button v-if="isDevelopment" class="btn btn-debug" @click="runNotificationTests()">
-        🔔 Testar Notificações
-      </button>
       
     </div>
 
@@ -495,8 +486,6 @@ const showNotification = ref(false)
 const notificationMessage = ref('')
 const notificationType = ref<'info' | 'success' | 'warning' | 'error'>('info')
 
-// Ambiente
-const isDevelopment = ref(process.env.NODE_ENV === 'development')
 
 // Computed
 const filteredReminders = computed(() => {
@@ -835,27 +824,6 @@ const showNotificationMessage = (message: string, type: 'info' | 'success' | 'wa
   }, 5000)
 }
 
-const runDebugTests = () => {
-  console.log('🧪 Executando testes de debug...')
-  // Importar e executar testes de debug
-  import('~/utils/debug-navigation.js').then(module => {
-    if (module.runDebugTests) {
-      module.runDebugTests()
-    }
-  })
-}
-
-const runNotificationTests = async () => {
-  console.log('🔔 Executando testes de notificações...')
-  try {
-    // Testar notificação usando o método do agendaStore
-    await agendaStore.testNotification()
-    showNotificationMessage('Teste de notificação executado!', 'success')
-  } catch (error) {
-    console.error('❌ Erro ao executar testes de notificações:', error)
-    showNotificationMessage('Erro ao testar notificações', 'error')
-  }
-}
 
 
 // Inicializar
