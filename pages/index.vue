@@ -321,7 +321,7 @@
           :class="{ 'past-date': isPastDate(reminder.remind_at), 'done-item': reminder.done }"
         >
           <div class="item-header">
-            <h3><strong>{{ reminder.notes }}</strong></h3>
+            <h3><strong style="white-space: pre-line;">{{ reminder.notes }}</strong></h3>
             <div class="item-header-right">
               <span :class="`priority-badge priority-${reminder.priority.toLowerCase()}`">
                 {{ reminder.priority === 'HIGH' ? 'Alta' : reminder.priority === 'MEDIUM' ? 'Média' : 'Baixa' }}
@@ -372,7 +372,7 @@
           :class="{ 'past-date': isPastDate(appointment.starts_at), 'done-item': appointment.done }"
         >
           <div class="item-header">
-            <h3><strong>{{ appointment.notes }}</strong></h3>
+            <h3><strong style="white-space: pre-line;">{{ appointment.notes }}</strong></h3>
             <div class="item-header-right">
               <span v-if="appointment.location" class="location">
                 📍 {{ appointment.location }}
