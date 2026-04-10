@@ -6,8 +6,7 @@ export type ReminderPriority = 'LOW' | 'MEDIUM' | 'HIGH'
 
 export interface Reminder {
   id: string
-  title: string
-  notes: string | null
+  notes: string
   remind_at: string
   done: boolean
   priority: ReminderPriority
@@ -17,9 +16,8 @@ export interface Reminder {
 
 export interface Appointment {
   id: string
-  title: string
+  notes: string
   location: string | null
-  notes: string | null
   starts_at: string
   ends_at: string | null
   done: boolean
@@ -86,9 +84,8 @@ export const useAgendaStore = defineStore('agenda', {
     },
 
     async createReminder(payload: {
-      title: string
+      notes: string
       remind_at: string
-      notes?: string
       priority?: ReminderPriority
       enableNotification?: boolean
       enableSound?: boolean
@@ -100,8 +97,7 @@ export const useAgendaStore = defineStore('agenda', {
       try {
         const db = useLocalStorageDB()
         const reminder = await db.createReminder({
-          title: payload.title,
-          notes: payload.notes || null,
+          notes: payload.notes,
           remind_at: payload.remind_at,
           done: false,
           priority: payload.priority || 'MEDIUM'
@@ -139,7 +135,6 @@ export const useAgendaStore = defineStore('agenda', {
     async updateReminder(
       id: string,
       payload: Partial<{
-        title: string
         notes: string
         remind_at: string
         priority: ReminderPriority
@@ -189,11 +184,10 @@ export const useAgendaStore = defineStore('agenda', {
     },
 
     async createAppointment(payload: {
-      title: string
+      notes: string
       starts_at: string
       ends_at?: string
       location?: string
-      notes?: string
       enableNotification?: boolean
       enableSound?: boolean
       enableVibration?: boolean
@@ -204,9 +198,8 @@ export const useAgendaStore = defineStore('agenda', {
       try {
         const db = useLocalStorageDB()
         const appointment = await db.createAppointment({
-          title: payload.title,
+          notes: payload.notes,
           location: payload.location || null,
-          notes: payload.notes || null,
           starts_at: payload.starts_at,
           ends_at: payload.ends_at || null,
           done: false
@@ -244,7 +237,6 @@ export const useAgendaStore = defineStore('agenda', {
     async updateAppointment(
       id: string,
       payload: Partial<{
-        title: string
         location: string
         notes: string
         starts_at: string
@@ -338,7 +330,7 @@ export const useAgendaStore = defineStore('agenda', {
         return notifications.scheduleNotification(
           'reminder',
           reminder.id,
-          reminder.title,
+          reminder.notes,
           scheduledTime
         )
       } catch (error) {
@@ -356,7 +348,7 @@ export const useAgendaStore = defineStore('agenda', {
         return notifications.scheduleNotification(
           'appointment',
           appointment.id,
-          appointment.title,
+          appointment.notes,
           scheduledTime
         )
       } catch (error) {
@@ -465,7 +457,6 @@ export const useAgendaStore = defineStore('agenda', {
     async updateReminderWithNotificationSettings(
       id: string,
       payload: Partial<{
-        title: string
         notes: string
         remind_at: string
         priority: ReminderPriority
@@ -514,7 +505,6 @@ export const useAgendaStore = defineStore('agenda', {
     async updateAppointmentWithNotificationSettings(
       id: string,
       payload: Partial<{
-        title: string
         location: string
         notes: string
         starts_at: string

@@ -2,8 +2,7 @@
 
 export interface Reminder {
   id: string
-  title: string
-  notes: string | null
+  notes: string
   remind_at: string
   done: boolean
   priority: 'LOW' | 'MEDIUM' | 'HIGH'
@@ -13,9 +12,8 @@ export interface Reminder {
 
 export interface Appointment {
   id: string
-  title: string
+  notes: string
   location: string | null
-  notes: string | null
   starts_at: string
   ends_at: string | null
   done: boolean
@@ -134,7 +132,7 @@ class LocalStorageDB {
     this.setRemindersToStorage(reminders)
     
     // Registrar no histórico
-    await this.logAudit('CREATE', 'reminder', newReminder.id, `Criou lembrete: ${reminder.title}`, reminder)
+    await this.logAudit('CREATE', 'reminder', newReminder.id, `Criou lembrete: ${reminder.notes}`, reminder)
     
     return newReminder
   }
@@ -171,7 +169,7 @@ class LocalStorageDB {
       }
     })
     
-    await this.logAudit('UPDATE', 'reminder', id, `Atualizou lembrete: ${updatedReminder.title}`, changes)
+    await this.logAudit('UPDATE', 'reminder', id, `Atualizou lembrete: ${updatedReminder.notes}`, changes)
     
     return updatedReminder
   }
@@ -190,7 +188,7 @@ class LocalStorageDB {
     this.setRemindersToStorage(filteredReminders)
     
     // Registrar no histórico
-    await this.logAudit('DELETE', 'reminder', id, `Deletou lembrete: ${reminder.title}`, reminder)
+    await this.logAudit('DELETE', 'reminder', id, `Deletou lembrete: ${reminder.notes}`, reminder)
   }
 
   async getAppointments(): Promise<Appointment[]> {
@@ -220,7 +218,7 @@ class LocalStorageDB {
     this.setAppointmentsToStorage(appointments)
     
     // Registrar no histórico
-    await this.logAudit('CREATE', 'appointment', newAppointment.id, `Criou compromisso: ${appointment.title}`, appointment)
+    await this.logAudit('CREATE', 'appointment', newAppointment.id, `Criou compromisso: ${appointment.notes}`, appointment)
     
     return newAppointment
   }
@@ -257,7 +255,7 @@ class LocalStorageDB {
       }
     })
     
-    await this.logAudit('UPDATE', 'appointment', id, `Atualizou compromisso: ${updatedAppointment.title}`, changes)
+    await this.logAudit('UPDATE', 'appointment', id, `Atualizou compromisso: ${updatedAppointment.notes}`, changes)
     
     return updatedAppointment
   }
@@ -276,7 +274,7 @@ class LocalStorageDB {
     this.setAppointmentsToStorage(filteredAppointments)
     
     // Registrar no histórico
-    await this.logAudit('DELETE', 'appointment', id, `Deletou compromisso: ${appointment.title}`, appointment)
+    await this.logAudit('DELETE', 'appointment', id, `Deletou compromisso: ${appointment.notes}`, appointment)
   }
 
   async getAuditLogs(limit = 100): Promise<AuditLog[]> {

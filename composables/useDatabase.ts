@@ -5,8 +5,7 @@ const isBrowser = typeof window !== 'undefined'
 
 export interface Reminder {
   id: string
-  title: string
-  notes: string | null
+  notes: string
   remind_at: string
   done: boolean
   priority: 'LOW' | 'MEDIUM' | 'HIGH'
@@ -16,9 +15,8 @@ export interface Reminder {
 
 export interface Appointment {
   id: string
-  title: string
+  notes: string
   location: string | null
-  notes: string | null
   starts_at: string
   ends_at: string | null
   done: boolean
@@ -77,8 +75,7 @@ class DatabaseService {
     await this.db.query(`
       CREATE TABLE IF NOT EXISTS reminders (
         id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        notes TEXT,
+        notes TEXT NOT NULL,
         remind_at TIMESTAMP NOT NULL,
         done BOOLEAN DEFAULT FALSE,
         priority TEXT CHECK(priority IN ('LOW', 'MEDIUM', 'HIGH')) DEFAULT 'MEDIUM',
@@ -91,9 +88,8 @@ class DatabaseService {
     await this.db.query(`
       CREATE TABLE IF NOT EXISTS appointments (
         id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
+        notes TEXT NOT NULL,
         location TEXT,
-        notes TEXT,
         starts_at TIMESTAMP NOT NULL,
         ends_at TIMESTAMP,
         done BOOLEAN DEFAULT FALSE,
@@ -143,13 +139,13 @@ class DatabaseService {
     const now = new Date().toISOString()
     
     await this.db.query(
-      `INSERT INTO reminders (id, title, notes, remind_at, done, priority, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [id, reminder.title, reminder.notes, reminder.remind_at, reminder.done, reminder.priority, now, now]
+      `INSERT INTO reminders (id, notes, remind_at, done, priority, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [id, reminder.notes, reminder.remind_at, reminder.done, reminder.priority, now, now]
     )
 
     // Registrar no histórico
-    await this.logAudit('CREATE', 'reminder', id, `Criou lembrete: ${reminder.title}`, reminder)
+    await this.logAudit('CREATE', 'reminder', id, `Criou lembrete: ${reminder.notes}`, reminder)
 
     return this.getReminder(id) as Promise<Reminder>
   }
@@ -187,7 +183,7 @@ class DatabaseService {
 
     // Registrar no histórico
     const reminder = await this.getReminder(id)
-    await this.logAudit('UPDATE', 'reminder', id, `Atualizou lembrete: ${reminder?.title}`, updates)
+    await this.logAudit('UPDATE', 'reminder', id, `Atualizou lembrete: ${reminder?.notes}`, updates)
 
     return reminder as Reminder
   }
@@ -202,7 +198,7 @@ class DatabaseService {
 
     // Registrar no histórico
     if (reminder) {
-      await this.logAudit('DELETE', 'reminder', id, `Deletou lembrete: ${reminder.title}`, reminder)
+      await this.logAudit('DELETE', 'reminder', id, `Deletou lembrete: ${reminder.notes}`, reminder)
     }
   }
 
@@ -225,14 +221,14 @@ class DatabaseService {
     const now = new Date().toISOString()
     
     await this.db.query(
-      `INSERT INTO appointments (id, title, location, notes, starts_at, ends_at, done, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-      [id, appointment.title, appointment.location, appointment.notes, 
+      `INSERT INTO appointments (id, notes, location, starts_at, ends_at, done, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [id, appointment.notes, appointment.location, 
        appointment.starts_at, appointment.ends_at, appointment.done, now, now]
     )
 
     // Registrar no histórico
-    await this.logAudit('CREATE', 'appointment', id, `Criou compromisso: ${appointment.title}`, appointment)
+    await this.logAudit('CREATE', 'appointment', id, `Criou compromisso: ${appointment.notes}`, appointment)
 
     return this.getAppointment(id) as Promise<Appointment>
   }
@@ -270,7 +266,7 @@ class DatabaseService {
 
     // Registrar no histórico
     const appointment = await this.getAppointment(id)
-    await this.logAudit('UPDATE', 'appointment', id, `Atualizou compromisso: ${appointment?.title}`, updates)
+    await this.logAudit('UPDATE', 'appointment', id, `Atualizou compromisso: ${appointment?.notes}`, updates)
 
     return appointment as Appointment
   }
@@ -285,7 +281,7 @@ class DatabaseService {
 
     // Registrar no histórico
     if (appointment) {
-      await this.logAudit('DELETE', 'appointment', id, `Deletou compromisso: ${appointment.title}`, appointment)
+      await this.logAudit('DELETE', 'appointment', id, `Deletou compromisso: ${appointment.notes}`, appointment)
     }
   }
 

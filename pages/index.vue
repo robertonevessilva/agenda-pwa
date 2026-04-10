@@ -87,11 +87,10 @@
         <div class="modal-body">
           <form @submit.prevent="editingReminder ? updateExistingReminder() : createReminder()">
             <div class="form-group">
-              <label for="reminder-title">Título *</label>
-              <input
-                id="reminder-title"
-                v-model="newReminder.title"
-                type="text"
+              <label for="reminder-notes">Notas *</label>
+              <textarea
+                id="reminder-notes"
+                v-model="newReminder.notes"
                 required
                 placeholder="Ex: Pagar conta de luz"
               />
@@ -114,15 +113,6 @@
                 <option value="MEDIUM">Média</option>
                 <option value="HIGH">Alta</option>
               </select>
-            </div>
-            
-            <div class="form-group">
-              <label for="reminder-notes">Notas</label>
-              <textarea
-                id="reminder-notes"
-                v-model="newReminder.notes"
-                placeholder="Detalhes adicionais..."
-              />
             </div>
             
             <div class="form-group">
@@ -169,11 +159,10 @@
         <div class="modal-body">
           <form @submit.prevent="editingAppointment ? updateExistingAppointment() : createAppointment()">
             <div class="form-group">
-              <label for="appointment-title">Título *</label>
-              <input
-                id="appointment-title"
-                v-model="newAppointment.title"
-                type="text"
+              <label for="appointment-notes">Notas *</label>
+              <textarea
+                id="appointment-notes"
+                v-model="newAppointment.notes"
                 required
                 placeholder="Ex: Reunião com cliente"
               />
@@ -205,15 +194,6 @@
                 v-model="newAppointment.location"
                 type="text"
                 placeholder="Ex: Sala de reuniões"
-              />
-            </div>
-            
-            <div class="form-group">
-              <label for="appointment-notes">Notas</label>
-              <textarea
-                id="appointment-notes"
-                v-model="newAppointment.notes"
-                placeholder="Detalhes do compromisso..."
               />
             </div>
             
@@ -260,8 +240,8 @@
         </div>
         <div class="modal-body">
           <div class="modal-field">
-            <strong>Título:</strong>
-            <span>{{ viewModalData.title }}</span>
+            <strong>Notas:</strong>
+            <span><strong>{{ viewModalData.notes }}</strong></span>
           </div>
           
           <div v-if="viewModalData.type === 'reminder'" class="modal-field">
@@ -341,7 +321,7 @@
           :class="{ 'past-date': isPastDate(reminder.remind_at), 'done-item': reminder.done }"
         >
           <div class="item-header">
-            <h3>{{ reminder.title }}</h3>
+            <h3><strong>{{ reminder.notes }}</strong></h3>
             <div class="item-header-right">
               <span :class="`priority-badge priority-${reminder.priority.toLowerCase()}`">
                 {{ reminder.priority === 'HIGH' ? 'Alta' : reminder.priority === 'MEDIUM' ? 'Média' : 'Baixa' }}
@@ -354,8 +334,6 @@
           <p class="item-time">
             ⏰ {{ formatDateTime(reminder.remind_at) }}
           </p>
-          
-          <p v-if="reminder.notes" class="item-notes">{{ reminder.notes }}</p>
           
           <div class="item-actions">
             <button class="btn btn-icon btn-view" @click="viewReminderDetails(reminder)" title="Visualizar">
@@ -394,7 +372,7 @@
           :class="{ 'past-date': isPastDate(appointment.starts_at), 'done-item': appointment.done }"
         >
           <div class="item-header">
-            <h3>{{ appointment.title }}</h3>
+            <h3><strong>{{ appointment.notes }}</strong></h3>
             <div class="item-header-right">
               <span v-if="appointment.location" class="location">
                 📍 {{ appointment.location }}
@@ -410,8 +388,6 @@
               até {{ formatDateTime(appointment.ends_at) }}
             </span>
           </p>
-          
-          <p v-if="appointment.notes" class="item-notes">{{ appointment.notes }}</p>
           
           <div class="item-actions">
             <button class="btn btn-icon btn-view" @click="viewAppointmentDetails(appointment)" title="Visualizar">
@@ -451,21 +427,19 @@ const editingAppointment = ref<any>(null)
 
 // Novos itens
 const newReminder = ref({
-  title: '',
+  notes: '',
   remind_at: '',
   priority: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH',
-  notes: '',
   enableNotification: true,
   enableSound: true,
   enableVibration: true
 })
 
 const newAppointment = ref({
-  title: '',
+  notes: '',
   starts_at: '',
   ends_at: '',
   location: '',
-  notes: '',
   enableNotification: true,
   enableSound: true,
   enableVibration: true
@@ -513,10 +487,9 @@ const openAppointmentForm = () => {
 
 const resetReminderForm = () => {
   newReminder.value = {
-    title: '',
+    notes: '',
     remind_at: '',
     priority: 'MEDIUM',
-    notes: '',
     enableNotification: true,
     enableSound: true,
     enableVibration: true
@@ -526,11 +499,10 @@ const resetReminderForm = () => {
 
 const resetAppointmentForm = () => {
   newAppointment.value = {
-    title: '',
+    notes: '',
     starts_at: '',
     ends_at: '',
     location: '',
-    notes: '',
     enableNotification: true,
     enableSound: true,
     enableVibration: true
@@ -545,10 +517,9 @@ const editReminder = async (reminder: any) => {
   const notificationSettings = await agendaStore.getReminderNotificationSettings(reminder.id)
   
   newReminder.value = {
-    title: reminder.title,
+    notes: reminder.notes || '',
     remind_at: reminder.remind_at.slice(0, 16), // Formato datetime-local
     priority: reminder.priority,
-    notes: reminder.notes || '',
     enableNotification: notificationSettings.enableNotification,
     enableSound: notificationSettings.enableSound,
     enableVibration: notificationSettings.enableVibration
@@ -564,11 +535,10 @@ const editAppointment = async (appointment: any) => {
   const notificationSettings = await agendaStore.getAppointmentNotificationSettings(appointment.id)
   
   newAppointment.value = {
-    title: appointment.title,
+    notes: appointment.notes || '',
     starts_at: appointment.starts_at.slice(0, 16),
     ends_at: appointment.ends_at ? appointment.ends_at.slice(0, 16) : '',
     location: appointment.location || '',
-    notes: appointment.notes || '',
     enableNotification: notificationSettings.enableNotification,
     enableSound: notificationSettings.enableSound,
     enableVibration: notificationSettings.enableVibration
@@ -580,9 +550,8 @@ const editAppointment = async (appointment: any) => {
 const createReminder = async () => {
   try {
     const reminder = await agendaStore.createReminder({
-      title: newReminder.value.title,
-      remind_at: newReminder.value.remind_at,
       notes: newReminder.value.notes,
+      remind_at: newReminder.value.remind_at,
       priority: newReminder.value.priority,
       enableNotification: newReminder.value.enableNotification,
       enableSound: newReminder.value.enableSound,
@@ -604,9 +573,8 @@ const updateExistingReminder = async () => {
     await agendaStore.updateReminderWithNotificationSettings(
       editingReminder.value.id,
       {
-        title: newReminder.value.title,
-        remind_at: newReminder.value.remind_at,
         notes: newReminder.value.notes,
+        remind_at: newReminder.value.remind_at,
         priority: newReminder.value.priority
       },
       {
@@ -636,11 +604,10 @@ const updateExistingReminder = async () => {
 const createAppointment = async () => {
   try {
     const appointment = await agendaStore.createAppointment({
-      title: newAppointment.value.title,
+      notes: newAppointment.value.notes,
       starts_at: newAppointment.value.starts_at,
       ends_at: newAppointment.value.ends_at || undefined,
       location: newAppointment.value.location,
-      notes: newAppointment.value.notes,
       enableNotification: newAppointment.value.enableNotification,
       enableSound: newAppointment.value.enableSound,
       enableVibration: newAppointment.value.enableVibration
@@ -661,11 +628,10 @@ const updateExistingAppointment = async () => {
     await agendaStore.updateAppointmentWithNotificationSettings(
       editingAppointment.value.id,
       {
-        title: newAppointment.value.title,
+        notes: newAppointment.value.notes,
         starts_at: newAppointment.value.starts_at,
-        ends_at: newAppointment.value.ends_at || null,
-        location: newAppointment.value.location,
-        notes: newAppointment.value.notes
+        ends_at: newAppointment.value.ends_at || undefined,
+        location: newAppointment.value.location
       },
       {
         enableNotification: newAppointment.value.enableNotification,
