@@ -276,7 +276,7 @@
           
           <div v-if="viewModalData.notes" class="modal-field">
             <strong>Notas:</strong>
-            <p class="modal-notes">{{ viewModalData.notes }}</p>
+            <p class="modal-notes" style="white-space: pre-line;">{{ viewModalData.notes }}</p>
           </div>
         </div>
         <div class="modal-footer">
