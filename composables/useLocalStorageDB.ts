@@ -27,8 +27,14 @@ export interface AuditLog {
   entity: 'reminder' | 'appointment'
   entity_id: string
   description: string
-  metadata: any
+  metadata: {
+    nota: string
+    data_hora: string
+    criado: string
+    atualizado: string
+  }
   created_at: string
+  updated_at: string
 }
 
 export interface NotificationSettings {
@@ -307,14 +313,71 @@ class LocalStorageDB {
   ): Promise<void> {
     await this.initialize()
     
+    // Extrair os campos necessários do metadata
+    let nota = ''
+    let data_hora = ''
+    let criado = new Date().toISOString()
+    let atualizado = new Date().toISOString()
+    
+    if (entity === 'reminder') {
+      if (operation === 'CREATE' || operation === 'DELETE') {
+        // metadata é o objeto do lembrete
+        nota = metadata.notes || ''
+        data_hora = metadata.remind_at || ''
+        criado = metadata.created_at || criado
+        atualizado = metadata.updated_at || atualizado
+      } else if (operation === 'UPDATE') {
+        // metadata contém as mudanças
+        // Para UPDATE, usamos os valores novos se disponíveis
+        if (metadata.notes && metadata.notes.new) {
+          nota = metadata.notes.new
+        } else if (typeof metadata === 'object' && metadata.notes) {
+          nota = metadata.notes
+        }
+        
+        if (metadata.remind_at && metadata.remind_at.new) {
+          data_hora = metadata.remind_at.new
+        } else if (typeof metadata === 'object' && metadata.remind_at) {
+          data_hora = metadata.remind_at
+        }
+      }
+    } else if (entity === 'appointment') {
+      if (operation === 'CREATE' || operation === 'DELETE') {
+        // metadata é o objeto do compromisso
+        nota = metadata.notes || ''
+        data_hora = metadata.starts_at || ''
+        criado = metadata.created_at || criado
+        atualizado = metadata.updated_at || atualizado
+      } else if (operation === 'UPDATE') {
+        // metadata contém as mudanças
+        if (metadata.notes && metadata.notes.new) {
+          nota = metadata.notes.new
+        } else if (typeof metadata === 'object' && metadata.notes) {
+          nota = metadata.notes
+        }
+        
+        if (metadata.starts_at && metadata.starts_at.new) {
+          data_hora = metadata.starts_at.new
+        } else if (typeof metadata === 'object' && metadata.starts_at) {
+          data_hora = metadata.starts_at
+        }
+      }
+    }
+    
     const newLog: AuditLog = {
       id: crypto.randomUUID(),
       operation,
       entity,
       entity_id: entityId,
       description,
-      metadata,
-      created_at: new Date().toISOString()
+      metadata: {
+        nota,
+        data_hora,
+        criado,
+        atualizado
+      },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     }
     
     const logs = this.getAuditLogsFromStorage()

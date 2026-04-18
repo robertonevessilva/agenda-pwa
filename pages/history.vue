@@ -209,44 +209,10 @@ const filteredLogs = computed(() => {
       try {
         const metadata = parseMetadata(log.metadata)
         
-        // Para lembretes, usar remind_at
-        if (log.entity === 'reminder') {
-          let remindDate
-          if (metadata.remind_at) {
-            remindDate = new Date(metadata.remind_at)
-          } else if (metadata.remind_at_old || metadata.remind_at_new) {
-            const dateStr = metadata.remind_at_new || metadata.remind_at_old
-            if (dateStr) {
-              remindDate = new Date(dateStr)
-            }
-          }
-          
-          if (remindDate) {
-            return remindDate >= startOfMonth && remindDate <= endOfMonth
-          }
-        }
-        
-        // Para compromissos, verificar se o intervalo entre starts_at e ends_at intersecta com o mês
-        if (log.entity === 'appointment') {
-          let startDate, endDate
-          
-          // Obter datas de início e fim
-          if (metadata.starts_at && metadata.ends_at) {
-            startDate = new Date(metadata.starts_at)
-            endDate = new Date(metadata.ends_at)
-          } else if (metadata.starts_at_old || metadata.starts_at_new || metadata.ends_at_old || metadata.ends_at_new) {
-            // Se for um objeto de mudança, usar os valores disponíveis
-            startDate = new Date(metadata.starts_at_new || metadata.starts_at_old || metadata.starts_at)
-            endDate = new Date(metadata.ends_at_new || metadata.ends_at_old || metadata.ends_at)
-          }
-          
-          if (startDate && endDate) {
-            // Verificar se o intervalo intersecta com o mês
-            return (startDate <= endOfMonth && endDate >= startOfMonth)
-          } else if (startDate) {
-            // Se só tiver startDate, verificar se está no mês
-            return startDate >= startOfMonth && startDate <= endOfMonth
-          }
+        // Usar o campo data_hora do metadata simplificado
+        if (metadata.data_hora) {
+          const dataHora = new Date(metadata.data_hora)
+          return dataHora >= startOfMonth && dataHora <= endOfMonth
         }
         
         return false
@@ -265,30 +231,15 @@ const filteredLogs = computed(() => {
     )
   }
   
-  // Ordenar por data do agendamento (remind_at para lembretes, starts_at para compromissos)
+  // Ordenar por data do agendamento (usar data_hora do metadata simplificado)
   return logs.sort((a, b) => {
     try {
       const metadataA = parseMetadata(a.metadata)
       const metadataB = parseMetadata(b.metadata)
       
-      let dateA, dateB
-      
-      // Para lembretes, usar remind_at
-      if (a.entity === 'reminder') {
-        dateA = metadataA.remind_at || metadataA.remind_at_new || metadataA.remind_at_old || a.created_at
-      } else if (a.entity === 'appointment') {
-        dateA = metadataA.starts_at || metadataA.starts_at_new || metadataA.starts_at_old || a.created_at
-      } else {
-        dateA = a.created_at
-      }
-      
-      if (b.entity === 'reminder') {
-        dateB = metadataB.remind_at || metadataB.remind_at_new || metadataB.remind_at_old || b.created_at
-      } else if (b.entity === 'appointment') {
-        dateB = metadataB.starts_at || metadataB.starts_at_new || metadataB.starts_at_old || b.created_at
-      } else {
-        dateB = b.created_at
-      }
+      // Usar data_hora se disponível, caso contrário usar created_at do log
+      const dateA = metadataA.data_hora || a.created_at
+      const dateB = metadataB.data_hora || b.created_at
       
       return new Date(dateB) - new Date(dateA)
     } catch {
@@ -340,20 +291,9 @@ function parseMetadata(metadata) {
       metadata = JSON.parse(metadata)
     }
     
-    const result = {}
-    
-    // Processar cada campo do metadata
-    Object.entries(metadata || {}).forEach(([key, value]) => {
-      // Se o valor for um objeto com old/new, expandir para dois campos
-      if (value && typeof value === 'object' && 'old' in value && 'new' in value) {
-        result[`${key}_old`] = value.old
-        result[`${key}_new`] = value.new
-      } else {
-        result[key] = value
-      }
-    })
-    
-    return result
+    // Com a nova estrutura, o metadata já tem os campos simplificados
+    // Retornamos o metadata diretamente
+    return metadata || {}
   } catch {
     return {}
   }
@@ -361,6 +301,10 @@ function parseMetadata(metadata) {
 
 function formatKey(key) {
   const keyMap = {
+    'nota': 'Nota',
+    'data_hora': 'Data e Hora',
+    'criado': 'Criado em',
+    'atualizado': 'Atualizado em',
     'title': 'Título',
     'remind_at': 'Data e Hora',
     'starts_at': 'Início',
@@ -408,8 +352,9 @@ function formatValue(key, value) {
     return priorityMap[value] || value
   }
   
-  // Formatar datas
-  if (key === 'remind_at' || key === 'starts_at' || key === 'ends_at' || 
+  // Formatar datas - incluir os novos campos
+  if (key === 'data_hora' || key === 'criado' || key === 'atualizado' || 
+      key === 'remind_at' || key === 'starts_at' || key === 'ends_at' || 
       key === 'created_at' || key === 'updated_at') {
     return formatDateTime(value)
   }

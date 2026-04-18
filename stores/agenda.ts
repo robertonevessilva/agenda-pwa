@@ -31,8 +31,14 @@ export interface AuditLog {
   entity: 'reminder' | 'appointment'
   entity_id: string
   description: string
-  metadata: any
+  metadata: {
+    nota: string
+    data_hora: string
+    criado: string
+    atualizado: string
+  }
   created_at: string
+  updated_at: string
 }
 
 export const useAgendaStore = defineStore('agenda', {
